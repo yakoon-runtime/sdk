@@ -3,11 +3,15 @@
 Usage:
     from y5n.sdk import ports
 
+    # register a service (Command A)
+    ports.register("hello", {"greet": lambda name="World": f"Hello, {name}!"})
+
+    # consume a service (Command B)
     hello = ports.get("hello")
-    print(hello.greet(name="World"))
+    print(hello.greet(name="Yakoon"))
 """
 
-from y5n.base.runtime.context import context
+from y5n.base.runtime.context import _port_registry
 
 
 class _PortProxy:
@@ -21,9 +25,17 @@ class _PortProxy:
         return fn
 
 
+def register(name: str, service: dict) -> None:
+    """Register a port service in the runtime.
+
+    The service persists across command invocations.
+    """
+    _port_registry[name] = service
+
+
 def get(name: str):
     """Get a port proxy by name."""
-    ctx = context.current()
-    if ctx.ports and name in ctx.ports:
-        return _PortProxy(ctx.ports[name])
-    raise KeyError(f"port '{name}' not available")
+    service = _port_registry.get(name)
+    if service is None:
+        raise KeyError(f"port '{name}' not registered")
+    return _PortProxy(service)
