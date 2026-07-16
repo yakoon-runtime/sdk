@@ -10,14 +10,24 @@ Usage:
 
     # Consume (run phase)
     hello = ports.get("hello")
-    print(hello.greet(name="Yakoon"))
+    print(hello.greet(name="Yakoon"))          # sync
+    print(await hello.greet(name="Yakoon"))     # async
 """
 
+import asyncio
 import uuid
 
 from y5n.base.runtime.bus import get_bus
-from y5n.base.runtime.context import Call, context, invoke
+from y5n.base.runtime.context import Call, Response, context, invoke
 from y5n.base.runtime.messages import Placement, RegisterProvider
+
+
+def _has_running_loop() -> bool:
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
 
 
 class _PortProxy:
@@ -25,21 +35,38 @@ class _PortProxy:
         self._port = port_name
 
     def __getattr__(self, name: str):
-        def caller(**kwargs):
-            ctx = context.current()
-            response = invoke(
-                Call(
-                    port=self._port,
-                    method=name,
-                    args=kwargs,
-                    caller_path=ctx.path,
-                )
-            )
-            if response.error:
-                raise RuntimeError(response.error)
-            return response.result
 
-        return caller
+        def _build_call(**kwargs) -> Call:
+            ctx = context.current()
+            return Call(
+                port=self._port,
+                method=name,
+                args=kwargs,
+                caller_path=ctx.path,
+            )
+
+        def _do_call(call: Call) -> Response:
+            return invoke(call)
+
+        if _has_running_loop():
+            async def async_caller(**kwargs):
+                loop = asyncio.get_running_loop()
+                call = _build_call(**kwargs)
+                response = await loop.run_in_executor(None, _do_call, call)
+                if response.error:
+                    raise RuntimeError(response.error)
+                return response.result
+
+            return async_caller
+        else:
+            def sync_caller(**kwargs):
+                call = _build_call(**kwargs)
+                response = _do_call(call)
+                if response.error:
+                    raise RuntimeError(response.error)
+                return response.result
+
+            return sync_caller
 
 
 def _register(
