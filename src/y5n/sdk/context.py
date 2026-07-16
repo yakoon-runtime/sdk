@@ -4,11 +4,27 @@ Usage:
     from y5n.sdk import context
     ctx = context.current()
     print(ctx.path)
-    print(ctx["request"])
+    print(ctx["session"])
+
+    req = context.request()
+    name = req.arg(0)
 """
 
-import sys
+from y5n.base.runtime.context import CommandContext
+from y5n.base.runtime.context import context as _ctx
 
-from y5n.base.runtime.context import context as _base_context
 
-sys.modules[__name__] = _base_context
+def current() -> CommandContext:
+    """Return the current command context."""
+    return _ctx.current()
+
+
+def request():
+    """Return a Request object parsed from the current context.
+
+    Provides arg(), option(), has_option() etc.
+    """
+    return _ctx.request()
+
+
+__all__ = ["CommandContext", "current", "request"]
