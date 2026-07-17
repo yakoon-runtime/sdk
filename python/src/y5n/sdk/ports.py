@@ -73,9 +73,8 @@ class _PortProxy:
         if _has_running_loop():
 
             async def async_caller(**kwargs):
-                loop = asyncio.get_running_loop()
                 call = _build_call(**kwargs)
-                return await loop.run_in_executor(None, _do_call, call)
+                return _do_call(call)
 
             return async_caller
         else:
