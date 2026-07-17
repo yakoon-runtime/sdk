@@ -1,3 +1,10 @@
+"""Provider registration — metadata only, no callables.
+
+The ``methods`` field lists public method names as strings.
+Callables stay local in the transport backend — they never
+cross the JSON boundary.
+"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -9,7 +16,7 @@ class Register:
     """A provider registration request."""
 
     name: str
-    service: dict[str, Any] = field(default_factory=dict)
+    methods: list[str] = field(default_factory=list)
     placement: str = "self"
     caller_path: str = ""
 
@@ -17,7 +24,7 @@ class Register:
     def from_dict(cls, data: dict[str, Any]) -> Register:
         return cls(
             name=data.get("name", ""),
-            service=data.get("service", {}),
+            methods=data.get("methods", []),
             placement=data.get("placement", "self"),
             caller_path=data.get("caller_path", ""),
         )

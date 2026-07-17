@@ -3,9 +3,11 @@
 Usage:
     from y5n.sdk import ports
 
-    ports.provide("hello", {"greet": lambda n: f"Hello, {n}!"})
-    ports.publish("shared", svc)
-    ports.promote("global", svc)
+    class Greeter:
+        def greet(self, name="World"):
+            return f"Hello, {name}!"
+
+    ports.promote("hello", Greeter())
 
     hello = ports.get("hello")
     print(hello.greet(name="Yakoon"))
@@ -13,10 +15,19 @@ Usage:
 """
 
 import asyncio
+from typing import Any
 
 from .context import current as _current_context
 from .libs import transport as _transport
 from .libs.models import Call, Register, Response
+
+
+def _extract_methods(service: object) -> dict[str, Any]:
+    return {
+        name: getattr(service, name)
+        for name in dir(service)
+        if not name.startswith("_") and callable(getattr(service, name))
+    }
 
 
 def _invoke(call: Call) -> Response:
@@ -26,8 +37,8 @@ def _invoke(call: Call) -> Response:
     return Response(result=result)
 
 
-def _register(reg: Register) -> None:
-    _transport.register(reg.to_dict())
+def _register(reg: Register, callables: dict[str, Any] | None = None) -> None:
+    _transport.register(reg.to_dict(), callables)
 
 
 def _has_running_loop() -> bool:
@@ -76,16 +87,28 @@ class _PortProxy:
             return sync_caller
 
 
-def provide(name: str, service: dict) -> None:
-    _register(Register(name=name, service=service, placement="self"))
+def provide(name: str, service: object) -> None:
+    callables = _extract_methods(service)
+    _register(
+        Register(name=name, methods=list(callables), placement="self"),
+        callables,
+    )
 
 
-def publish(name: str, service: dict) -> None:
-    _register(Register(name=name, service=service, placement="parent"))
+def publish(name: str, service: object) -> None:
+    callables = _extract_methods(service)
+    _register(
+        Register(name=name, methods=list(callables), placement="parent"),
+        callables,
+    )
 
 
-def promote(name: str, service: dict) -> None:
-    _register(Register(name=name, service=service, placement="root"))
+def promote(name: str, service: object) -> None:
+    callables = _extract_methods(service)
+    _register(
+        Register(name=name, methods=list(callables), placement="root"),
+        callables,
+    )
 
 
 def get(name: str):

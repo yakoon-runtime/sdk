@@ -45,8 +45,8 @@ def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
     raise RuntimeError(f"Transport mode {mode!r} not yet implemented")
 
 
-def register(reg_dict: dict[str, Any]) -> None:
+def register(reg_dict: dict[str, Any], methods_dict: dict[str, Any] | None = None) -> None:
     mode = _detect_mode()
     if mode == "inprocess":
-        return _register_inprocess(reg_dict)
+        return _register_inprocess(reg_dict, methods_dict)
     raise RuntimeError(f"Transport mode {mode!r} not yet implemented")

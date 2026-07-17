@@ -20,7 +20,9 @@ def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
     return {"result": rr.result, "error": rr.error}
 
 
-def register(reg_dict: dict[str, Any]) -> None:
+def register(
+    reg_dict: dict[str, Any], methods_dict: dict[str, Any] | None = None
+) -> None:
     import uuid
 
     from y5n.base.runtime.bus import get_bus
@@ -32,11 +34,12 @@ def register(reg_dict: dict[str, Any]) -> None:
         "root": Placement.ROOT,
     }.get(reg_dict.get("placement", "self"), Placement.SELF)
 
+    name = reg_dict.get("name", "")
     get_bus().dispatch(
         RegisterProvider(
             provider_id=f"provider:{uuid.uuid4().hex}",
-            exports={reg_dict["name"]: list(reg_dict.get("service", {}).keys())},
-            service=reg_dict.get("service"),
+            exports={name: reg_dict.get("methods", [])},
+            service=methods_dict or {},
             placement=placement,
             caller_path=reg_dict.get("caller_path", ""),
         )
