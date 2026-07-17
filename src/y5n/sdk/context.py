@@ -1,30 +1,36 @@
-"""Command context — access request, session, path.
+"""Command execution context.
+
+A frozen snapshot of the call's starting conditions, set once
+by the Host and never modified.
 
 Usage:
     from y5n.sdk import context
-    ctx = context.current()
-    print(ctx.path)
-    print(ctx["session"])
 
-    req = context.request()
-    name = req.arg(0)
+    ctx = context.current()
+    print(ctx.node["path"])
+    print(ctx.user["name"])
+    print(ctx.tokens)
 """
 
-from y5n.base.runtime.context import CommandContext
-from y5n.base.runtime.context import context as _ctx
+from contextvars import ContextVar
+from typing import Any
+
+from y5n.base.contracts import Context as _Context
+
+_var: ContextVar[_Context] = ContextVar("y5n_sdk_context")
 
 
-def current() -> CommandContext:
-    """Return the current command context."""
-    return _ctx.current()
+def _set(ctx: _Context) -> None:
+    """Set the current context (called by the Host)."""
+    _var.set(ctx)
 
 
-def request():
-    """Return a Request object parsed from the current context.
+def current() -> _Context:
+    """Return the current execution context."""
+    try:
+        return _var.get()
+    except LookupError:
+        return _Context()
 
-    Provides arg(), option(), has_option() etc.
-    """
-    return _ctx.request()
 
-
-__all__ = ["CommandContext", "current", "request"]
+__all__ = ["current"]
