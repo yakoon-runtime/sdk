@@ -8,11 +8,13 @@ over stdin/env (Context) and IPC (Call, Response, Register).
 from .call import Call
 from .context import Context
 from .register import Register
+from .request import Request
 from .response import Response
 
 __all__ = [
     "Call",
     "Context",
     "Register",
+    "Request",
     "Response",
 ]

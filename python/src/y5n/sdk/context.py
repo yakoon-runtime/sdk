@@ -9,12 +9,16 @@ Usage:
     ctx = context.current()
     print(ctx.node["path"])
     print(ctx.user["name"])
-    print(ctx.tokens)
+
+    req = context.request()
+    print(req.arg(0))
+    print(req.option("name"))
 """
 
 from contextvars import ContextVar
 
 from .libs.models import Context as _Context
+from .libs.models import Request as _Request
 
 _var: ContextVar[_Context] = ContextVar("y5n_sdk_context")
 
@@ -32,4 +36,10 @@ def current() -> _Context:
         return _Context()
 
 
-__all__ = ["current"]
+def request() -> _Request:
+    """Return a Request object parsed from the current context tokens."""
+    ctx = current()
+    return _Request.from_tokens(ctx.tokens)
+
+
+__all__ = ["current", "request"]
