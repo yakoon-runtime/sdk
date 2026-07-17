@@ -15,19 +15,19 @@ Usage:
 import asyncio
 
 from .context import current as _current_context
-from .libs import ipc as _ipc
+from .libs import transport as _transport
 from .libs.models import Call, Register, Response
 
 
 def _invoke(call: Call) -> Response:
-    result = _ipc.invoke(call.to_dict())
+    result = _transport.invoke(call.to_dict())
     if isinstance(result, dict):
         return Response.from_dict(result)
     return Response(result=result)
 
 
 def _register(reg: Register) -> None:
-    _ipc.register(reg.to_dict())
+    _transport.register(reg.to_dict())
 
 
 def _has_running_loop() -> bool:
