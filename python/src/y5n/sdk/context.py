@@ -19,6 +19,7 @@ from contextvars import ContextVar
 
 from .libs.models import Context as _Context
 from .libs.models import Request as _Request
+from .libs.models import Session as _Session
 
 _var: ContextVar[_Context] = ContextVar("y5n_sdk_context")
 
@@ -42,4 +43,10 @@ def request() -> _Request:
     return _Request.from_tokens(ctx.tokens)
 
 
-__all__ = ["current", "request"]
+def session() -> _Session:
+    """Return a Session object built from the current context."""
+    ctx = current()
+    return _Session.from_context(ctx.session, ctx.user)
+
+
+__all__ = ["current", "request", "session"]

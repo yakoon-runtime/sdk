@@ -10,6 +10,7 @@ from .context import Context
 from .register import Register
 from .request import Request
 from .response import Response
+from .session import Session
 
 __all__ = [
     "Call",
@@ -17,4 +18,5 @@ __all__ = [
     "Register",
     "Request",
     "Response",
+    "Session",
 ]
