@@ -11,7 +11,6 @@ Supported schemes:
 
 from __future__ import annotations
 
-import json
 import os
 from typing import Any
 
@@ -51,14 +50,3 @@ def register(reg_dict: dict[str, Any]) -> None:
     if mode == "inprocess":
         return _register_inprocess(reg_dict)
     raise RuntimeError(f"Transport mode {mode!r} not yet implemented")
-
-
-def read_context() -> dict[str, Any]:
-    raw = os.environ.get("YAK_CONTEXT")
-    if raw:
-        return json.loads(raw)
-    ctx_file = os.environ.get("YAK_CONTEXT_FILE")
-    if ctx_file:
-        with open(ctx_file) as f:
-            return json.load(f)
-    return {}
