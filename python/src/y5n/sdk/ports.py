@@ -15,6 +15,7 @@ Usage:
 """
 
 import asyncio
+import inspect
 from typing import Any
 
 from .context import current as _current_context
@@ -71,7 +72,10 @@ class _PortProxy:
         if _has_running_loop():
 
             async def async_caller():
-                return _do_call(call)
+                tmp = _do_call(call)
+                if inspect.iscoroutine(tmp):
+                    return await tmp
+                return tmp
 
             return async_caller()
         return _do_call(call)
@@ -91,7 +95,10 @@ class _PortProxy:
 
             async def async_caller(**kwargs):
                 call = _build_call(**kwargs)
-                return _do_call(call)
+                tmp = _do_call(call)
+                if inspect.iscoroutine(tmp):
+                    return await tmp
+                return tmp
 
             return async_caller
         else:
