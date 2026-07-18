@@ -49,9 +49,32 @@ def _has_running_loop() -> bool:
         return False
 
 
+def _do_call(call: Call):
+    response = _invoke(call)
+    if response.error:
+        raise RuntimeError(response.error)
+    return response.result
+
+
 class _PortProxy:
     def __init__(self, port_name: str):
         self._port = port_name
+
+    def __call__(self, **kwargs):
+        ctx = _current_context()
+        call = Call(
+            port=self._port,
+            method="__call__",
+            args=kwargs,
+            caller_path=ctx.node.get("path", ""),
+        )
+        if _has_running_loop():
+
+            async def async_caller():
+                return _do_call(call)
+
+            return async_caller()
+        return _do_call(call)
 
     def __getattr__(self, name: str):
 
@@ -63,12 +86,6 @@ class _PortProxy:
                 args=kwargs,
                 caller_path=ctx.node.get("path", ""),
             )
-
-        def _do_call(call: Call):
-            response = _invoke(call)
-            if response.error:
-                raise RuntimeError(response.error)
-            return response.result
 
         if _has_running_loop():
 
