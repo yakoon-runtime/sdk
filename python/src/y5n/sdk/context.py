@@ -16,6 +16,7 @@ from __future__ import annotations
 from contextvars import ContextVar
 
 from .libs.models import Context as _Ctx
+from .libs.models import Flow as _Flow
 from .libs.models import Request as _Request
 from .libs.models import Session as _Session
 
@@ -47,4 +48,10 @@ def session() -> _Session:
     return _Session.from_context(ctx.session, ctx.user)
 
 
-__all__ = ["current", "request", "session"]
+def flow() -> _Flow:
+    """Return a Flow object built from the current context."""
+    ctx = current()
+    return _Flow.from_dict(ctx.flow)
+
+
+__all__ = ["current", "flow", "request", "session"]

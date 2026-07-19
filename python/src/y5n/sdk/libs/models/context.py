@@ -13,6 +13,7 @@ class Context:
     workspace: str = ""
     user: dict[str, Any] = field(default_factory=dict)
     session: dict[str, Any] = field(default_factory=dict)
+    flow: dict[str, Any] = field(default_factory=dict)
     tokens: list[str] = field(default_factory=list)
     trace_id: str | None = None
 
@@ -24,6 +25,7 @@ class Context:
             workspace=data.get("workspace", ""),
             user=data.get("user", {}),
             session=data.get("session", {}),
+            flow=data.get("flow", {}),
             tokens=data.get("tokens", []),
             trace_id=data.get("trace_id"),
         )
