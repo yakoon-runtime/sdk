@@ -1,13 +1,7 @@
 """Runtime actions — answers "what should the runtime do?".
 
-Every function returns a custom awaitable that yields a marker
-tuple to the host's direct-drive loop:
-
-    ('write', view)        → out(view, mode=...)
-    ('error', text)        → out({"kind": "error", "text": text})
-    ('delay', seconds)     → delay(seconds)
-    ('delay_until', ts)    → delay_until(ts)
-    ('view', params)       → view(**params)
+Every function returns a custom awaitable whose ``__await__`` yields
+a ``Marker`` (see ``y5n.base.host.protocol``) to the host's direct-drive loop.
 
 Usage:
     from y5n.sdk import runtime
@@ -21,6 +15,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from y5n.base.host.protocol import Marker, MarkerKind
+
 
 class _Write:
     __slots__ = ("_view",)
@@ -29,7 +25,7 @@ class _Write:
         self._view = view
 
     def __await__(self):
-        yield ("write", self._view)
+        yield Marker(MarkerKind.WRITE, self._view)
 
 
 class _Error:
@@ -39,7 +35,7 @@ class _Error:
         self._text = text
 
     def __await__(self):
-        yield ("error", self._text)
+        yield Marker(MarkerKind.ERROR, self._text)
 
 
 class _Delay:
@@ -49,7 +45,7 @@ class _Delay:
         self._seconds = seconds
 
     def __await__(self):
-        yield ("delay", self._seconds)
+        yield Marker(MarkerKind.DELAY, self._seconds)
 
 
 class _DelayUntil:
@@ -59,7 +55,7 @@ class _DelayUntil:
         self._timestamp = timestamp
 
     def __await__(self):
-        yield ("delay_until", self._timestamp)
+        yield Marker(MarkerKind.DELAY_UNTIL, self._timestamp)
 
 
 class _View:
@@ -69,52 +65,26 @@ class _View:
         self._params = params
 
     def __await__(self):
-        yield ("view", self._params)
+        yield Marker(MarkerKind.VIEW, self._params)
 
 
 def write(view: dict | str) -> _Write:
-    """Emit output to the client.
-
-    Usage:
-        await runtime.write("hello")
-        await runtime.write({"kind": "document", ...})
-    """
     return _Write(view)
 
 
 def error(text: str) -> _Error:
-    """Emit an error message to the client.
-
-    Usage:
-        await runtime.error("something went wrong")
-    """
     return _Error(text)
 
 
 def delay(seconds: float) -> _Delay:
-    """Suspend the current invocation for *seconds*.
-
-    Usage:
-        await runtime.delay(2)
-    """
     return _Delay(seconds)
 
 
 def delay_until(timestamp: float) -> _DelayUntil:
-    """Suspend the current invocation until *timestamp* (Unix).
-
-    Usage:
-        await runtime.delay_until(time.time() + 10)
-    """
     return _DelayUntil(timestamp)
 
 
 def view(**params: Any) -> _View:
-    """Send a viewport hint to the client.
-
-    Usage:
-        await runtime.view(clear=True)
-    """
     return _View(**params)
 
 
