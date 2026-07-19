@@ -68,6 +68,16 @@ class _View:
         yield Marker(MarkerKind.VIEW, self._params)
 
 
+class _Cwd:
+    __slots__ = ("_path",)
+
+    def __init__(self, path: str) -> None:
+        self._path = path
+
+    def __await__(self):
+        yield Marker(MarkerKind.CWD, self._path)
+
+
 def write(view: dict | str) -> _Write:
     return _Write(view)
 
@@ -88,4 +98,13 @@ def view(**params: Any) -> _View:
     return _View(**params)
 
 
-__all__ = ["delay", "delay_until", "error", "view", "write"]
+def cwd(path: str) -> _Cwd:
+    """Change the current working directory.
+
+    Usage:
+        await runtime.cwd("/usr/bin")
+    """
+    return _Cwd(path)
+
+
+__all__ = ["cwd", "delay", "delay_until", "error", "view", "write"]
