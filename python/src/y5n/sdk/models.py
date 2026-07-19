@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -34,215 +35,264 @@ class YdsModel:
                 result[f.name] = value
         return result
 
-@dataclass(slots=True, kw_only=True)
-class Block(YdsModel):
-    id: str | None = None
 
 @dataclass(slots=True, kw_only=True)
-class Text(Block):
+class Text(YdsModel):
     """A run of rich inline text."""
-    text: list[Inline] = field(default_factory=list)
+
+    text: Sequence[Inline] = field(default_factory=list)
     style: str | None = None
-    type: str = 'text'
+    type: str = "text"
+
 
 @dataclass(slots=True, kw_only=True)
-class Paragraph(Block):
+class Paragraph(YdsModel):
     """A paragraph of inline text."""
-    text: list[Inline] = field(default_factory=list)
-    type: str = 'paragraph'
+
+    text: Sequence[Inline] = field(default_factory=list)
+    type: str = "paragraph"
+
 
 @dataclass(slots=True, kw_only=True)
-class Heading(Block):
+class Heading(YdsModel):
     """A section heading."""
+
     level: int = 1
-    text: list[Inline] = field(default_factory=list)
-    type: str = 'heading'
+    text: Sequence[Inline] = field(default_factory=list)
+    type: str = "heading"
+
 
 @dataclass(slots=True, kw_only=True)
-class Pre(Block):
+class Pre(YdsModel):
     """Preformatted / code block."""
+
     code: str
     language: str | None = None
-    type: str = 'pre'
+    type: str = "pre"
+
 
 @dataclass(slots=True, kw_only=True)
-class Rule(Block):
+class Rule(YdsModel):
     """A horizontal rule."""
-    style: str = 'normal'
-    type: str = 'rule'
+
+    style: str = "normal"
+    type: str = "rule"
+
 
 @dataclass(slots=True, kw_only=True)
-class Spacer(Block):
+class Spacer(YdsModel):
     """Vertical spacing."""
+
     size: int = 1
-    type: str = 'spacer'
+    type: str = "spacer"
+
 
 @dataclass(slots=True, kw_only=True)
-class List(Block):
+class List(YdsModel):
     """An ordered or unordered list."""
-    items: list[ListItem] = field(default_factory=list)
-    type: str = 'list'
+
+    items: Sequence[ListItem] = field(default_factory=list)
+    type: str = "list"
+
 
 @dataclass(slots=True, kw_only=True)
-class ListItem(Block):
+class ListItem(YdsModel):
     """A single list item."""
-    text: list[Inline] = field(default_factory=list)
-    blocks: list[Block] = field(default_factory=list)
-    type: str = 'list_item'
+
+    text: Sequence[Inline] = field(default_factory=list)
+    blocks: Sequence[Block] = field(default_factory=list)
+    type: str = "list_item"
+
 
 @dataclass(slots=True, kw_only=True)
-class Kv(Block):
+class Kv(YdsModel):
     """A key-value listing (property sheet)."""
-    items: list[KvItem] = field(default_factory=list)
-    type: str = 'kv'
+
+    items: Sequence[KvItem] = field(default_factory=list)
+    type: str = "kv"
+
 
 @dataclass(slots=True, kw_only=True)
-class KvItem(Block):
+class KvItem(YdsModel):
     """A single key-value pair."""
+
     key: str
-    value: list[Inline] = field(default_factory=list)
-    type: str = 'kv_item'
+    value: Sequence[Inline] = field(default_factory=list)
+    type: str = "kv_item"
+
 
 @dataclass(slots=True, kw_only=True)
-class Table(Block):
+class Table(YdsModel):
     """A data table."""
-    columns: list[TableColumn] = field(default_factory=list)
+
+    columns: Sequence[TableColumn] = field(default_factory=list)
     rows: list[list[str]] = field(default_factory=list)
     variant: str | None = None
     selectable: bool = True
-    type: str = 'table'
+    type: str = "table"
+
 
 @dataclass(slots=True, kw_only=True)
-class Fields(Block):
+class Fields(YdsModel):
     """A group of input fields (form)."""
+
     name: str | None = None
-    fields: list[Field] = field(default_factory=list)
-    type: str = 'fields'
+    fields: Sequence[Field] = field(default_factory=list)
+    type: str = "fields"
+
 
 @dataclass(slots=True, kw_only=True)
-class Actions(Block):
+class Actions(YdsModel):
     """A group of action buttons."""
-    actions: list[Action] = field(default_factory=list)
-    type: str = 'actions'
+
+    actions: Sequence[Action] = field(default_factory=list)
+    type: str = "actions"
+
 
 @dataclass(slots=True, kw_only=True)
-class Section(Block):
+class Section(YdsModel):
     """A generic section container."""
-    blocks: list[Block] = field(default_factory=list)
-    type: str = 'section'
+
+    blocks: Sequence[Block] = field(default_factory=list)
+    type: str = "section"
+
 
 @dataclass(slots=True, kw_only=True)
-class Stack(Block):
+class Stack(YdsModel):
     """A vertical stack container."""
-    blocks: list[Block] = field(default_factory=list)
-    type: str = 'stack'
+
+    blocks: Sequence[Block] = field(default_factory=list)
+    type: str = "stack"
+
 
 @dataclass(slots=True, kw_only=True)
-class Flow(Block):
+class Flow(YdsModel):
     """A horizontal flow container."""
-    blocks: list[Block] = field(default_factory=list)
-    type: str = 'flow'
+
+    blocks: Sequence[Block] = field(default_factory=list)
+    type: str = "flow"
+
 
 @dataclass(slots=True, kw_only=True)
-class Collapsible(Block):
+class Collapsible(YdsModel):
     """A collapsible section."""
-    title: list[Inline] = field(default_factory=list)
+
+    title: Sequence[Inline] = field(default_factory=list)
     expanded: bool = False
-    blocks: list[Block] = field(default_factory=list)
-    type: str = 'collapsible'
+    blocks: Sequence[Block] = field(default_factory=list)
+    type: str = "collapsible"
+
 
 @dataclass(slots=True, kw_only=True)
-class Image(Block):
+class Image(YdsModel):
     """An embedded image."""
+
     ref: str
     src: str | None = None
     alt: str | None = None
-    type: str = 'image'
-@dataclass(slots=True, kw_only=True)
-class Inline(YdsModel):
-    pass
+    type: str = "image"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineText(Inline):
+class InlineText(YdsModel):
     text: str
-    type: str = 'text'
+    type: str = "text"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineStrong(Inline):
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'strong'
+class InlineStrong(YdsModel):
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "strong"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineEm(Inline):
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'em'
+class InlineEm(YdsModel):
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "em"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineUnderline(Inline):
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'underline'
+class InlineUnderline(YdsModel):
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "underline"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineCode(Inline):
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'code'
+class InlineCode(YdsModel):
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "code"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineLink(Inline):
+class InlineLink(YdsModel):
     href: str
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'link'
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "link"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineCmd(Inline):
+class InlineCmd(YdsModel):
     """A clickable command reference."""
+
     command: str
     variant: str | None = None
     navigable: bool | None = None
     resolvable: bool | None = None
     contextual: bool | None = None
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'cmd'
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "cmd"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineArg(Inline):
+class InlineArg(YdsModel):
     """A command argument placeholder."""
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'arg'
+
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "arg"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineMark(Inline):
+class InlineMark(YdsModel):
     """A highlighted / marked span."""
+
     variant: str | None = None
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'mark'
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "mark"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineSelect(Inline):
+class InlineSelect(YdsModel):
     """A selected / active value label."""
+
     value: str
-    children: list[Inline] = field(default_factory=list)
-    type: str = 'select'
+    children: Sequence[Inline] = field(default_factory=list)
+    type: str = "select"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineSpace(Inline):
+class InlineSpace(YdsModel):
     count: int = 1
-    type: str = 'space'
+    type: str = "space"
+
 
 @dataclass(slots=True, kw_only=True)
-class InlineBreak(Inline):
+class InlineBreak(YdsModel):
     count: int = 1
-    type: str = 'break'
+    type: str = "break"
+
 
 @dataclass(slots=True, kw_only=True)
 class TableColumn(YdsModel):
     """A single column definition."""
+
     key: str
     title: str
+
 
 @dataclass(slots=True, kw_only=True)
 class Field(YdsModel):
     """A single input field definition."""
+
     policy: str
     name: str | None = None
     required: bool = False
@@ -251,25 +301,68 @@ class Field(YdsModel):
     default: str | None = None
     lookup: str | None = None
 
+
 @dataclass(slots=True, kw_only=True)
 class Action(YdsModel):
     """A single action / command button."""
+
     label: str
     command: str
     scope: str | None = None
 
+
 @dataclass(slots=True, kw_only=True)
 class Header(YdsModel):
     """Document-level presentation metadata."""
-    role: str = 'info'
+
+    role: str = "info"
     title: str | None = None
     subtitle: str | None = None
     error_kind: str | None = None
     error_code: str | None = None
 
+
 @dataclass(slots=True, kw_only=True)
 class Document(YdsModel):
     """Root of every YDS document.  Produced by the Compiler and normalised by the Runtime before dispatch."""
-    kind: str = 'document'
+
+    kind: str = "document"
     header: Header
-    blocks: list[Block] = field(default_factory=list)
+    blocks: Sequence[Block] = field(default_factory=list)
+
+
+Block = (
+    Text
+    | Paragraph
+    | Heading
+    | Pre
+    | Rule
+    | Spacer
+    | List
+    | ListItem
+    | Kv
+    | KvItem
+    | Table
+    | Fields
+    | Actions
+    | Section
+    | Stack
+    | Flow
+    | Collapsible
+    | Image
+)
+
+Inline = (
+    InlineText
+    | InlineStrong
+    | InlineEm
+    | InlineUnderline
+    | InlineCode
+    | InlineLink
+    | InlineCmd
+    | InlineArg
+    | InlineMark
+    | InlineSelect
+    | InlineSpace
+    | InlineBreak
+)

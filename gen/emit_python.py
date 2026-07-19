@@ -15,6 +15,7 @@ _HEADER = """\
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -54,13 +55,16 @@ def _to_pascal(name: str) -> str:
 
 
 def _resolve_type(prop: PropertyDef) -> str:
-    """Resolve a property type to a Python type annotation string."""
     if prop.type_ref == "array" and prop.items_ref:
+        # Nested arrays (e.g. table.rows) are always list-of-primitive
         if prop.items_ref.startswith("list["):
             inner = prop.items_ref
+            outer = "list"
         else:
             inner = _TYPE_MAP.get(prop.items_ref, _to_pascal(prop.items_ref))
-        py_type = f"list[{inner}]"
+            # Model references use covariant Sequence; primitives use list
+            outer = "list" if prop.items_ref in _TYPE_MAP else "Sequence"
+        py_type = f"{outer}[{inner}]"
     elif prop.type_ref in _TYPE_MAP:
         py_type = _TYPE_MAP[prop.type_ref]
     else:
@@ -73,7 +77,6 @@ def _resolve_type(prop: PropertyDef) -> str:
 
 
 def _default_repr(prop: PropertyDef) -> str | None:
-    """Return the Python repr of the default value, or None if required."""
     if prop.const is not None:
         return repr(prop.const)
     if prop.default is not None:
@@ -86,7 +89,6 @@ def _default_repr(prop: PropertyDef) -> str | None:
 
 
 def _field_line(prop: PropertyDef) -> str:
-    """Generate a single field line for a dataclass."""
     py_type = _resolve_type(prop)
     default = _default_repr(prop)
     if default is not None:
@@ -95,23 +97,11 @@ def _field_line(prop: PropertyDef) -> str:
 
 
 def _emit_class(cls: ClassDef, *, add_type_discriminator: bool = False) -> str:
-    """Emit a single class definition.
-
-    Parameters
-    ----------
-    add_type_discriminator:
-        If True, add a ``type`` field whose default is *cls.type_value*.
-        Used for block and inline subclasses.
-    """
-    base = cls.base or "YdsModel"
-    lines = [f"\n\n@dataclass(slots=True, kw_only=True)\nclass {cls.name}({base}):"]
+    lines = [f"\n\n@dataclass(slots=True, kw_only=True)\nclass {cls.name}(YdsModel):"]
 
     if cls.description:
         lines.append(f'    """{cls.description}"""')
 
-    # Collect fields: add discriminator at the end if needed.
-    # It must come last so it doesn't break the required-before-optional
-    # ordering that dataclasses enforce.
     all_props = list(cls.properties)
     if add_type_discriminator and cls.type_value:
         has_type = any(p.name == _DISCRIMINATOR_FIELD for p in all_props)
@@ -141,7 +131,6 @@ def emit(schema: Schema) -> str:
     """Emit the full Python source for the generated models module."""
     parts = [_HEADER]
 
-    # Separate classes by category
     block_types: list[ClassDef] = []
     inline_types: list[ClassDef] = []
     standalone: list[ClassDef] = []
@@ -160,36 +149,33 @@ def emit(schema: Schema) -> str:
         else:
             standalone.append(cls)
 
-    # Emit Block base class
-    parts.append("""
-@dataclass(slots=True, kw_only=True)
-class Block(YdsModel):
-    id: str | None = None""")
-
-    # Emit block types (with discriminator)
+    # Emit block types (with type discriminator)
     for cls in block_types:
         parts.append(_emit_class(cls, add_type_discriminator=True))
 
-    # Emit Inline base class
-    parts.append("""
-@dataclass(slots=True, kw_only=True)
-class Inline(YdsModel):
-    pass""")
-
-    # Emit inline types (with discriminator)
+    # Emit inline types (with type discriminator)
     for cls in inline_types:
         parts.append(_emit_class(cls, add_type_discriminator=True))
 
-    # Emit standalone types (header, field, action, table_column)
+    # Emit standalone types
     for cls in standalone:
         parts.append(_emit_class(cls))
 
-    # Emit Header explicitly before Document
+    # Emit Header before Document
     if header_cls:
         parts.append(_emit_class(header_cls))
 
-    # Emit Document last (may reference Block, Header, etc.)
+    # Emit Document last
     if document_cls:
         parts.append(_emit_class(document_cls))
+
+    # Emit union type aliases at the end
+    block_names = [cls.name for cls in block_types]
+    inline_names = [cls.name for cls in inline_types]
+
+    if block_names:
+        parts.append(f"\n\nBlock = {' | '.join(block_names)}")
+    if inline_names:
+        parts.append(f"\n\nInline = {' | '.join(inline_names)}")
 
     return "".join(parts)
