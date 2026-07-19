@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from y5n.base.host.protocol import Marker, MarkerKind
+from y5n.sdk.models import YdsModel
 
 
 class _Write:
@@ -78,7 +79,9 @@ class _Cwd:
         yield Marker(MarkerKind.CWD, self._path)
 
 
-def write(view: dict | str) -> _Write:
+def write(view: YdsModel | dict | str) -> _Write:
+    if isinstance(view, YdsModel):
+        view = view.to_dict()  # type: ignore[assignment]
     return _Write(view)
 
 

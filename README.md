@@ -1,93 +1,120 @@
 # SDK — Command Capabilities
 
-> **Draft.** This document describes a direction, not a specification.
-> It captures an architectural idea that emerged while building
-> the `python` executor and the `y5napi` context API.
-> Nothing here is set in stone.
-
-A Yakoon command is an independently executable program.
-The Runtime does not define how a command is written —
-it provides capabilities that a command may optionally use.
-
-## Capability Levels
-
-| Level | Capability | API | Available in |
-|-------|-----------|-----|-------------|
-| **0** | stdout | `print()` → stdout | every executor |
-| **1** | Context | `context.current()` → request, session, path | `runtime`, `python` |
-| **2** | UI SDK | `ui.table()`, `ui.form()` | `runtime`, `python` (future) |
-| **3** | Services (RPC) | `services.*` → ports | `runtime`, `python` (future) |
-| **4** | Runtime Effects | `yield Suspend()`, `yield StartTask()` | `runtime` |
-
-### Level 0 — stdout
+The Python SDK is the first-class interface for writing Yakoon commands.
 
 ```python
-print("Hello")
+from y5n.sdk import context, models, ports, runtime
 ```
 
-Every executor (`runtime`, `python`, `script`, `process`) can
-translate stdout into Outcomes and send them to the client.
-This is the universal ABI.
+## Modules
 
-### Level 1 — Context
+| Module | Import | Purpose |
+|--------|--------|---------|
+| `context` | `from y5n.sdk import context` | Read-only snapshot of the current invocation |
+| `runtime` | `from y5n.sdk import runtime` | Send actions (output, navigation, delay) back to the host |
+| `models` | `from y5n.sdk.models import Document, …` | Typed YDS document builder (generated from `spec/yds/yds-v1.yaml`) |
+| `ports` | `from y5n.sdk import ports` | Service / port access (provide + consume) |
+
+## Context — Read the World
 
 ```python
-from y5n.runtime.executor.napi import context
+from y5n.sdk import context
 
-ctx = context.current()
-print(ctx.request.arg(0))
-print(ctx.session.get_data("theme"))
+req = context.request()       # parsed invocation arguments
+ctx = context.current()       # cwd, workspace, user, session
+sess = context.session()      # session-scoped data
 ```
 
-The executor places runtime information into the context before
-starting the command. The command reads it. No async, no ports,
-no scheduler — pure data.
-
-### Level 2 — UI SDK (future)
+## Runtime — Act on the World
 
 ```python
-from y5n import ui
+from y5n.sdk import runtime
 
-print(ui.table(columns=["Name", "Age"], rows=[["Alice", 42]]))
+await runtime.write("hello")                    # plain text output
+await runtime.write({"key": "structured"})      # dict output
+await runtime.write(doc)                        # YdsModel → auto to_dict()
+await runtime.write(Document(…))                # YDS document
+
+await runtime.error("something went wrong")
+
+await runtime.delay(2.5)                        # sleep seconds
+await runtime.delay_until(1234567890.0)         # sleep until timestamp
+
+await runtime.view(clear=True)                  # clear & replace view
+await runtime.cwd("/usr/bin")                   # change working directory
 ```
 
-Structured output blocks (Table, Kv, Collapsible, Form, …)
-are produced by the UI SDK and serialized to stdout.
-The executor detects structured frames and translates them
-into projection Outcomes. No runtime coupling.
+Every `runtime.*` call is an **awaitable** that yields a `Marker` back to the host's
+direct-drive loop. The host never sees SDK types — only plain `dict` / `str` values.
 
-### Level 3 — Services / RPC (future)
+## Models — Typed YDS Documents
+
+Generated from `spec/yds/yds-v1.yaml` via `sdk/python/generate.sh`.
 
 ```python
-from y5n import services
+from y5n.sdk.models import Document, Header, Paragraph, InlineText
 
-worlds = await services.worlds.list()
+doc = Document(
+    header=Header(title="Hello"),
+    blocks=[
+        Paragraph(text=[InlineText(text="World")]),
+    ],
+)
+await runtime.write(doc)   # auto-converts via .to_dict()
 ```
 
-Port access through a JSON-RPC protocol on stdin/stdout.
-The executor translates calls into runtime port invocations.
-Available for `runtime` today, for `python` when the RPC
-protocol is implemented.
+Every model class is a `@dataclass(slots=True, kw_only=True)` that inherits from
+`YdsModel` and provides `.to_dict()`. Fields with `None` values are omitted from
+the serialized output. The `type` discriminator is set automatically for block and
+inline types.
 
-### Level 4 — Runtime Effects
+### Generated classes
 
-```python
-yield Suspend()
-yield StartTask(...)
+| Category | Classes |
+|----------|---------|
+| **Root** | `Document` |
+| **Header** | `Header` |
+| **Block (base)** | `Block` (subclass for container type hints) |
+| **Blocks** | `Text`, `Paragraph`, `Heading`, `Pre`, `Rule`, `Spacer`, `List`, `ListItem`, `Kv`, `KvItem`, `Table`, `Fields`, `Actions`, `Section`, `Stack`, `Flow`, `Collapsible`, `Image` |
+| **Inline (base)** | `Inline` (subclass for container type hints) |
+| **Inlines** | `InlineText`, `InlineStrong`, `InlineEm`, `InlineUnderline`, `InlineCode`, `InlineLink`, `InlineCmd`, `InlineArg`, `InlineMark`, `InlineSelect`, `InlineSpace`, `InlineBreak` |
+| **Standalone** | `TableColumn`, `Field`, `Action` |
+
+## Architecture
+
+```text
+Command                       Host
+  │                            │
+  ├─ context.current() ────────┤  (data snapshot, no call)
+  │                            │
+  ├─ await runtime.write(doc) ─┤
+  │                           │
+  │  YdsModel.to_dict() ──────┤  (SDK serializes to plain dict)
+  │                           │
+  │  Marker(WRITE, dict) ─────┤  (yielded via __await__)
+  │                           │
+  │                           └─ handler → Outcome
+  │
+  └─ [done] ── StopIteration ──┘
 ```
 
-Control the scheduler directly. These are the kernel operations
-of the platform. Only available in the `runtime` executor.
+The host drives the command coroutine via `coro.send(None)` — no `create_task`,
+no Queue, no polling. Every `await runtime.*` yields a `Marker` that the host
+dispatches to a registered handler (producing a DSL Outcome) or processes as a
+side effect (e.g. `CWD`).
 
-## Architecture Rule
+## Generator
 
-> **The Runtime does not define how a command is written.**
-> **It provides capabilities that a command may optionally use.**
+```bash
+cd sdk/python
+./generate.sh
+```
 
-## Consequences
+This reads `spec/yds/yds-v1.yaml` and writes `sdk/python/src/y5n/sdk/models.py`.
+The generator lives in `sdk/gen/` and supports multiple language targets.
 
-- A `print("Hello")` is a fully valid Yakoon command
-- `yield` is not a mechanism for output, but for runtime control
-- Forms, dialogs and patterns are UI libraries, not runtime concepts
-- The executor translates the command's language into Outcomes for the scheduler
-- Each capability level is discovered and built when a real command needs it
+## Rules
+
+- The Host never imports SDK types — it receives plain `dict` / `str`.
+- The SDK never imports Host types — it yields `Marker` instances.
+- Models are generated, never hand-edited. Extensions go in companion modules.
