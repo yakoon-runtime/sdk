@@ -1,40 +1,38 @@
-"""Command execution context.
+"""Execution context — answers "where am I?".
 
-A frozen snapshot of the call's starting conditions, set once
-by the Host and never modified.
+This module is read-only. It provides the frozen snapshot of
+the current invocation's starting conditions.
 
 Usage:
     from y5n.sdk import context
 
     ctx = context.current()
-    print(ctx.node["path"])
-    print(ctx.user["name"])
-
     req = context.request()
-    print(req.arg(0))
-    print(req.option("name"))
+    ses = context.session()
 """
+
+from __future__ import annotations
 
 from contextvars import ContextVar
 
-from .libs.models import Context as _Context
+from .libs.models import Context as _Ctx
 from .libs.models import Request as _Request
 from .libs.models import Session as _Session
 
-_var: ContextVar[_Context] = ContextVar("y5n_sdk_context")
+_var: ContextVar[_Ctx] = ContextVar("y5n_sdk_context")
 
 
-def _set(ctx: _Context) -> None:
+def _set(ctx: _Ctx) -> None:
     """Set the current context (called by the Host)."""
     _var.set(ctx)
 
 
-def current() -> _Context:
+def current() -> _Ctx:
     """Return the current execution context."""
     try:
         return _var.get()
     except LookupError:
-        return _Context()
+        return _Ctx()
 
 
 def request() -> _Request:

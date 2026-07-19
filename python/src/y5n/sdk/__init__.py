@@ -1,16 +1,13 @@
 """Yakoon Python SDK — public API for commands.
 
 Usage:
-    from y5n.sdk import context, ports
+    from y5n.sdk import context, ports, runtime
 
     ctx = context.current()
     ports.provide("svc", {...})
-    svc = ports.get("svc")
-
-The SDK connects to the Host via YAK_ENDPOINT environment variable.
+    await runtime.write("hello")
 """
 
-from . import context
-from . import ports
+from . import context, ports, runtime
 
-__all__ = ["context", "ports"]
+__all__ = ["context", "ports", "runtime"]
