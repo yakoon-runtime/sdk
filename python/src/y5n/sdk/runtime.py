@@ -20,13 +20,15 @@ from y5n.sdk.models import YdsModel
 
 
 class _Write:
-    __slots__ = ("_view",)
+    __slots__ = ("_view", "_mode")
 
-    def __init__(self, view: dict | str) -> None:
+    def __init__(self, view: dict | str, mode: str | None = None) -> None:
         self._view = view
+        self._mode = mode
 
     def __await__(self):
-        yield Marker(MarkerKind.WRITE, self._view)
+        value: Any = (self._view, self._mode) if self._mode else self._view
+        yield Marker(MarkerKind.WRITE, value)
 
 
 class _Error:
@@ -79,10 +81,23 @@ class _Cwd:
         yield Marker(MarkerKind.CWD, self._path)
 
 
-def write(view: YdsModel | dict | str) -> _Write:
+def write(
+    view: YdsModel | dict | str,
+    *,
+    mode: str | None = None,
+) -> _Write:
+    """Write output to the client.
+
+    Parameters
+    ----------
+    mode:
+        ``"replace"`` — replace the current view.
+        ``"append"`` — append to the current view.
+        ``None`` (default) — let the host decide (first call→replace, rest→append).
+    """
     if isinstance(view, YdsModel):
         view = view.to_dict()  # type: ignore[assignment]
-    return _Write(view)
+    return _Write(view, mode=mode)
 
 
 def error(text: str) -> _Error:
