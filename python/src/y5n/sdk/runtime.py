@@ -11,6 +11,7 @@ from .fs import fs
 from .io import io
 from .network import network
 from .scheduler import scheduler
+from .session import session
 from .timer import timer
 from .viewport import viewport
 
@@ -19,6 +20,7 @@ __all__ = [
     "io",
     "network",
     "scheduler",
+    "session",
     "timer",
     "viewport",
 ]

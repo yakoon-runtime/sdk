@@ -1,7 +1,7 @@
 """Yakoon Python SDK — public API for commands.
 
 Usage:
-    from y5n.sdk import context, io, fs, models, ports, scheduler, network, viewport
+    from y5n.sdk import context, fs, io, models, ports, scheduler, session, network, viewport
 
     ctx = context.current()
     await io.write(models.Document(...))
@@ -13,6 +13,7 @@ from .fs import fs
 from .io import io
 from .network import network
 from .scheduler import scheduler
+from .session import session
 from .timer import timer
 from .viewport import viewport
 
@@ -24,6 +25,7 @@ __all__ = [
     "network",
     "ports",
     "scheduler",
+    "session",
     "timer",
     "viewport",
 ]

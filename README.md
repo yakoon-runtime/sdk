@@ -3,7 +3,7 @@
 The Python SDK is the first-class interface for writing Yakoon commands.
 
 ```python
-from y5n.sdk import context, fs, io, models, ports, scheduler, viewport
+from y5n.sdk import context, fs, io, models, ports, scheduler, session, viewport
 ```
 
 ## Modules
@@ -16,6 +16,7 @@ from y5n.sdk import context, fs, io, models, ports, scheduler, viewport
 | `scheduler` | `from y5n.sdk import scheduler` | Process / flow management (list, stop, fg, bg) |
 | `network` | `from y5n.sdk import network` | Remote runtime discovery and connection |
 | `viewport` | `from y5n.sdk import viewport` | Client viewport commands (clear, connect) |
+| `session` | `from y5n.sdk import session` | Session management (list) |
 | `fs` | `from y5n.sdk import fs` | Filesystem operations (chdir) |
 | `models` | `from y5n.sdk.models import Document, ...` | Typed YDS document builder (generated from `spec/yds/yds-v1.yaml`) |
 | `ports` | `from y5n.sdk import ports` | Service / port access (provide + consume) |
@@ -89,6 +90,22 @@ from y5n.sdk import viewport
 
 await viewport.clear()
 await viewport.connect(url=url, name=name)
+```
+
+## Session — Session Management
+
+```python
+from y5n.sdk import session
+
+rows = await session.list()
+```
+
+The current session key is available from context:
+
+```python
+from y5n.sdk import context
+
+key = context.session().key
 ```
 
 ## Filesystem — Working Directory
