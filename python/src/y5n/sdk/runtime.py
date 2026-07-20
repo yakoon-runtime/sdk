@@ -207,6 +207,30 @@ class _Scheduler:
         return _FlowBg()
 
 
+class _NetworkResolve:
+    __slots__ = ("_name",)
+
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    def __await__(self):
+        from y5n.base.runtime.bus import get_bus
+        from y5n.base.runtime.context import Call
+
+        bus = get_bus()
+        resp = yield from bus.async_dispatch(
+            Call(
+                port="source",
+                method="read",
+                args={"query": f"system:runtimes --resolve {self._name}"},
+                caller_path="",
+            )
+        ).__await__()
+        data = resp.result if hasattr(resp, "result") else resp
+        rows = data.rows if hasattr(data, "rows") else []
+        return rows[0]["url"] if rows else None
+
+
 class _Network:
     """Network — remote runtime discovery and connection."""
 
@@ -214,6 +238,11 @@ class _Network:
     def list() -> _NetworkList:
         """Return list of known remote runtimes."""
         return _NetworkList()
+
+    @staticmethod
+    def resolve(name: str) -> _NetworkResolve:
+        """Resolve a runtime name to a URL."""
+        return _NetworkResolve(name)
 
 
 # ----- Domain instances -------------------------------------------------------
