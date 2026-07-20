@@ -16,7 +16,7 @@ from y5n.sdk import context, fs, io, models, ports, scheduler, session, viewport
 | `scheduler` | `from y5n.sdk import scheduler` | Process / flow management (list, stop, fg, bg) |
 | `network` | `from y5n.sdk import network` | Remote runtime discovery and connection |
 | `viewport` | `from y5n.sdk import viewport` | Client viewport commands (clear, connect) |
-| `session` | `from y5n.sdk import session` | Session management (list) |
+| `session` | `from y5n.sdk import session` | Session management (list, attach, detach) |
 | `fs` | `from y5n.sdk import fs` | Filesystem operations (chdir) |
 | `models` | `from y5n.sdk.models import Document, ...` | Typed YDS document builder (generated from `spec/yds/yds-v1.yaml`) |
 | `ports` | `from y5n.sdk import ports` | Service / port access (provide + consume) |
@@ -98,6 +98,8 @@ await viewport.connect(url=url, name=name)
 from y5n.sdk import session
 
 rows = await session.list()
+await session.attach("other-key")
+await session.detach()
 ```
 
 The current session key is available from context:
