@@ -38,14 +38,16 @@ def _detect_mode() -> str:
     return _MODE
 
 
-def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
+async def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
     mode = _detect_mode()
     if mode == "inprocess":
-        return _invoke_inprocess(call_dict)
+        return await _invoke_inprocess(call_dict)
     raise RuntimeError(f"Transport mode {mode!r} not yet implemented")
 
 
-def register(reg_dict: dict[str, Any], methods_dict: dict[str, Any] | None = None) -> None:
+def register(
+    reg_dict: dict[str, Any], methods_dict: dict[str, Any] | None = None
+) -> None:
     mode = _detect_mode()
     if mode == "inprocess":
         return _register_inprocess(reg_dict, methods_dict)

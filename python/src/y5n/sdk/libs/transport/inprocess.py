@@ -6,7 +6,7 @@ Only available when running inside Yakoon's Python process.
 from typing import Any
 
 
-def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
+async def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
     from y5n.base.runtime.context import Call as _RuntimeCall
     from y5n.base.runtime.context import invoke as _runtime_invoke
 
@@ -16,7 +16,7 @@ def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
         args=call_dict.get("args", {}),
         caller_path=call_dict.get("caller_path", ""),
     )
-    rr = _runtime_invoke(rc)
+    rr = await _runtime_invoke(rc)
     return {"result": rr.result, "error": rr.error}
 
 

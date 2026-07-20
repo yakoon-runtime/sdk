@@ -122,6 +122,25 @@ class _FlowBg:
         return result
 
 
+class _NetworkList:
+    def __await__(self):
+        from y5n.base.runtime.bus import get_bus
+        from y5n.base.runtime.context import Call
+
+        bus = get_bus()
+        resp = yield from bus.async_dispatch(
+            Call(
+                port="source",
+                method="read",
+                args={"query": "system:runtimes --list"},
+                caller_path="",
+            )
+        ).__await__()
+        data = resp.result if hasattr(resp, "result") else resp
+        rows = data.rows if hasattr(data, "rows") else []
+        return [{"name": r["name"], "url": r["url"]} for r in rows]
+
+
 # ----- Domain classes ---------------------------------------------------------
 
 
@@ -188,11 +207,21 @@ class _Scheduler:
         return _FlowBg()
 
 
+class _Network:
+    """Network — remote runtime discovery and connection."""
+
+    @staticmethod
+    def list() -> _NetworkList:
+        """Return list of known remote runtimes."""
+        return _NetworkList()
+
+
 # ----- Domain instances -------------------------------------------------------
 
 io = _IO()
 timer = _Timer()
 scheduler = _Scheduler()
+network = _Network()
 
 # ----- Flat backward-compat aliases -------------------------------------------
 
@@ -227,6 +256,7 @@ __all__ = [
     "delay_until",
     "error",
     "io",
+    "network",
     "scheduler",
     "timer",
     "view",

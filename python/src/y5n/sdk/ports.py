@@ -14,8 +14,6 @@ Usage:
     print(await hello.greet(name="Yakoon"))
 """
 
-import asyncio
-import inspect
 from typing import Any
 
 from .context import current as _current_context
@@ -31,8 +29,8 @@ def _extract_methods(service: object) -> dict[str, Any]:
     }
 
 
-def _invoke(call: Call) -> Response:
-    result = _transport.invoke(call.to_dict())
+async def _invoke(call: Call) -> Response:
+    result = await _transport.invoke(call.to_dict())
     if isinstance(result, dict):
         return Response.from_dict(result)
     return Response(result=result)
@@ -42,16 +40,8 @@ def _register(reg: Register, callables: dict[str, Any] | None = None) -> None:
     _transport.register(reg.to_dict(), callables)
 
 
-def _has_running_loop() -> bool:
-    try:
-        asyncio.get_running_loop()
-        return True
-    except RuntimeError:
-        return False
-
-
-def _do_call(call: Call):
-    response = _invoke(call)
+async def _do_call(call: Call):
+    response = await _invoke(call)
     if response.error:
         raise RuntimeError(response.error)
     return response.result
@@ -61,7 +51,7 @@ class _PortProxy:
     def __init__(self, port_name: str):
         self._port = port_name
 
-    def __call__(self, **kwargs):
+    async def __call__(self, **kwargs):
         ctx = _current_context()
         call = Call(
             port=self._port,
@@ -69,45 +59,21 @@ class _PortProxy:
             args=kwargs,
             caller_path=ctx.node.get("path", ""),
         )
-        if _has_running_loop():
-
-            async def async_caller():
-                tmp = _do_call(call)
-                if inspect.iscoroutine(tmp):
-                    return await tmp
-                return tmp
-
-            return async_caller()
-        return _do_call(call)
+        return await _do_call(call)
 
     def __getattr__(self, name: str):
 
-        def _build_call(**kwargs) -> Call:
+        async def _call(**kwargs):
             ctx = _current_context()
-            return Call(
+            call = Call(
                 port=self._port,
                 method=name,
                 args=kwargs,
                 caller_path=ctx.node.get("path", ""),
             )
+            return await _do_call(call)
 
-        if _has_running_loop():
-
-            async def async_caller(**kwargs):
-                call = _build_call(**kwargs)
-                tmp = _do_call(call)
-                if inspect.iscoroutine(tmp):
-                    return await tmp
-                return tmp
-
-            return async_caller
-        else:
-
-            def sync_caller(**kwargs):
-                call = _build_call(**kwargs)
-                return _do_call(call)
-
-            return sync_caller
+        return _call
 
 
 def provide(name: str, service: object) -> None:
