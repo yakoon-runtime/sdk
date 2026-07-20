@@ -25,10 +25,10 @@ A backward-compatible `runtime` facade is available for code that prefers a sing
 entry point:
 
 ```python
-from y5n.sdk import runtime
+from y5n.sdk import io, timer
 
-await runtime.io.write("hello")
-await runtime.timer.delay(2)
+await io.write("hello")
+await timer.delay(2)
 ```
 
 ## Context — Read the World
