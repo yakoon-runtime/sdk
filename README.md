@@ -3,7 +3,7 @@
 The Python SDK is the first-class interface for writing Yakoon commands.
 
 ```python
-from y5n.sdk import context, models, ports, runtime
+from y5n.sdk import context, io, models, ports, scheduler, viewport
 ```
 
 ## Modules
@@ -11,9 +11,23 @@ from y5n.sdk import context, models, ports, runtime
 | Module | Import | Purpose |
 |--------|--------|---------|
 | `context` | `from y5n.sdk import context` | Read-only snapshot of the current invocation |
-| `runtime` | `from y5n.sdk import runtime` | Send actions (output, navigation, delay) back to the host |
-| `models` | `from y5n.sdk.models import Document, …` | Typed YDS document builder (generated from `spec/yds/yds-v1.yaml`) |
+| `io` | `from y5n.sdk import io` | Text / structured output and error messages |
+| `timer` | `from y5n.sdk import timer` | Delay and scheduling helpers |
+| `scheduler` | `from y5n.sdk import scheduler` | Process / flow management (list, stop, fg, bg) |
+| `network` | `from y5n.sdk import network` | Remote runtime discovery and connection |
+| `viewport` | `from y5n.sdk import viewport` | Client viewport commands (clear, connect) |
+| `models` | `from y5n.sdk.models import Document, ...` | Typed YDS document builder (generated from `spec/yds/yds-v1.yaml`) |
 | `ports` | `from y5n.sdk import ports` | Service / port access (provide + consume) |
+
+A backward-compatible `runtime` facade is available for code that prefers a single
+entry point:
+
+```python
+from y5n.sdk import runtime
+
+await runtime.io.write("hello")
+await runtime.timer.delay(2)
+```
 
 ## Context — Read the World
 
@@ -25,27 +39,56 @@ ctx = context.current()       # cwd, workspace, user, session
 sess = context.session()      # session-scoped data
 ```
 
-## Runtime — Act on the World
+## IO — Text & Structured Output
 
 ```python
-from y5n.sdk import runtime
+from y5n.sdk import io
 
-await runtime.write("hello")                    # plain text output
-await runtime.write({"key": "structured"})      # dict output
-await runtime.write(doc)                        # YdsModel → auto to_dict()
-await runtime.write(Document(…))                # YDS document
+await io.write("hello")                    # plain text output
+await io.write({"key": "structured"})      # dict output
+await io.write(doc)                        # YdsModel → auto to_dict()
+await io.write(Document(...))              # YDS document
 
-await runtime.error("something went wrong")
-
-await runtime.delay(2.5)                        # sleep seconds
-await runtime.delay_until(1234567890.0)         # sleep until timestamp
-
-await runtime.view(clear=True)                  # clear & replace view
-await runtime.cwd("/usr/bin")                   # change working directory
+await io.error("something went wrong")
 ```
 
-Every `runtime.*` call is an **awaitable** that yields a `Marker` back to the host's
-direct-drive loop. The host never sees SDK types — only plain `dict` / `str` values.
+## Timer — Delays
+
+```python
+from y5n.sdk import timer
+
+await timer.delay(2.5)                     # sleep seconds
+await timer.delay_until(1234567890.0)      # sleep until timestamp
+```
+
+## Scheduler — Flow Management
+
+```python
+from y5n.sdk import scheduler
+
+flows = await scheduler.flows()
+await scheduler.stop(flow_id)
+await scheduler.foreground(flow_id)
+await scheduler.background()
+```
+
+## Network — Remote Runtimes
+
+```python
+from y5n.sdk import network
+
+runtimes = await network.list()
+url = await network.resolve(name)
+```
+
+## Viewport — Client Viewport Commands
+
+```python
+from y5n.sdk import viewport
+
+await viewport.clear()
+await viewport.connect(url=url, name=name)
+```
 
 ## Models — Typed YDS Documents
 
@@ -60,7 +103,7 @@ doc = Document(
         Paragraph(text=[InlineText(text="World")]),
     ],
 )
-await runtime.write(doc)   # auto-converts via .to_dict()
+await io.write(doc)   # auto-converts via .to_dict()
 ```
 
 Every model class is a `@dataclass(slots=True, kw_only=True)` that inherits from
@@ -87,7 +130,7 @@ Command                       Host
   │                            │
   ├─ context.current() ────────┤  (data snapshot, no call)
   │                            │
-  ├─ await runtime.write(doc) ─┤
+  ├─ await io.write(doc) ─────┤
   │                           │
   │  YdsModel.to_dict() ──────┤  (SDK serializes to plain dict)
   │                           │
