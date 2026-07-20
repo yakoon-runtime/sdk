@@ -8,7 +8,11 @@ Usage:
 
     await runtime.write("hello")
     await runtime.delay(2)
-    await runtime.view(clear=True)
+
+    # Domain-style API (new)
+    await runtime.io.write("hello")
+    await runtime.timer.delay(2)
+    flows = await runtime.scheduler.flows()
 """
 
 from __future__ import annotations
@@ -17,6 +21,8 @@ from typing import Any
 
 from y5n.base.host.protocol import Marker, MarkerKind
 from y5n.sdk.models import YdsModel
+
+# ----- Internal awaitables ---------------------------------------------------
 
 
 class _Write:
@@ -81,35 +87,130 @@ class _Cwd:
         yield Marker(MarkerKind.CWD, self._path)
 
 
-def write(
-    view: YdsModel | dict | str,
-    *,
-    mode: str | None = None,
-) -> _Write:
-    """Write output to the client.
+class _FlowsList:
+    def __await__(self):
+        from y5n.sdk.context import flow as _ctx_flow
 
-    Parameters
-    ----------
-    mode:
-        ``"replace"`` — replace the current view.
-        ``"append"`` — append to the current view.
-        ``None`` (default) — let the host decide (first call→replace, rest→append).
-    """
-    if isinstance(view, YdsModel):
-        view = view.to_dict()  # type: ignore[assignment]
-    return _Write(view, mode=mode)
+        exclude_id = _ctx_flow().id
+        result = yield Marker(MarkerKind.FLOWS_LIST, exclude_id)
+        return result
+
+
+class _FlowStop:
+    __slots__ = ("_flow_id",)
+
+    def __init__(self, flow_id: str) -> None:
+        self._flow_id = flow_id
+
+    def __await__(self):
+        yield Marker(MarkerKind.FLOW_STOP, self._flow_id)
+
+
+class _FlowFg:
+    __slots__ = ("_flow_id",)
+
+    def __init__(self, flow_id: str) -> None:
+        self._flow_id = flow_id
+
+    def __await__(self):
+        yield Marker(MarkerKind.FLOW_FG, self._flow_id)
+
+
+class _FlowBg:
+    def __await__(self):
+        result = yield Marker(MarkerKind.FLOW_BG, None)
+        return result
+
+
+# ----- Domain classes ---------------------------------------------------------
+
+
+class _IO:
+    """Input / Output — communication with the user."""
+
+    @staticmethod
+    def write(
+        view: YdsModel | dict | str,
+        *,
+        mode: str | None = None,
+    ) -> _Write:
+        """Write output to the client.
+
+        Parameters
+        ----------
+        mode:
+            ``"replace"`` — replace the current view.
+            ``"append"`` — append to the current view.
+            ``None`` (default) — let the host decide.
+        """
+        if isinstance(view, YdsModel):
+            view = view.to_dict()  # type: ignore[assignment]
+        return _Write(view, mode=mode)
+
+    @staticmethod
+    def error(text: str) -> _Error:
+        return _Error(text)
+
+
+class _Timer:
+    """Timer — delay and scheduling helpers."""
+
+    @staticmethod
+    def delay(seconds: float) -> _Delay:
+        return _Delay(seconds)
+
+    @staticmethod
+    def delay_until(timestamp: float) -> _DelayUntil:
+        return _DelayUntil(timestamp)
+
+
+class _Scheduler:
+    """Scheduler — process / flow management."""
+
+    @staticmethod
+    def flows() -> _FlowsList:
+        """Return list of active flow dicts for the current session."""
+        return _FlowsList()
+
+    @staticmethod
+    def stop(flow_id: str) -> _FlowStop:
+        """Stop a flow by ID."""
+        return _FlowStop(flow_id)
+
+    @staticmethod
+    def foreground(flow_id: str) -> _FlowFg:
+        """Bring a flow to the foreground."""
+        return _FlowFg(flow_id)
+
+    @staticmethod
+    def background() -> _FlowBg:
+        """Send the current foreground flow to the background."""
+        return _FlowBg()
+
+
+# ----- Domain instances -------------------------------------------------------
+
+io = _IO()
+timer = _Timer()
+scheduler = _Scheduler()
+
+# ----- Flat backward-compat aliases -------------------------------------------
+
+
+def write(view, *, mode=None):
+    return io.write(view, mode=mode)
 
 
 def error(text: str) -> _Error:
-    return _Error(text)
+    return io.error(text)
 
 
 def delay(seconds: float) -> _Delay:
-    return _Delay(seconds)
+    return timer.delay(seconds)
 
 
 def delay_until(timestamp: float) -> _DelayUntil:
-    return _DelayUntil(timestamp)
+    return timer.delay_until(timestamp)
 
 
 def view(**params: Any) -> _View:
@@ -117,12 +218,17 @@ def view(**params: Any) -> _View:
 
 
 def cwd(path: str) -> _Cwd:
-    """Change the current working directory.
-
-    Usage:
-        await runtime.cwd("/usr/bin")
-    """
     return _Cwd(path)
 
 
-__all__ = ["cwd", "delay", "delay_until", "error", "view", "write"]
+__all__ = [
+    "cwd",
+    "delay",
+    "delay_until",
+    "error",
+    "io",
+    "scheduler",
+    "timer",
+    "view",
+    "write",
+]
