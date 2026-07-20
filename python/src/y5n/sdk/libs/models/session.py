@@ -15,7 +15,6 @@ class Session:
     locale: str = ""
     user: str | None = None
     user_id: str | None = None
-    interaction: str = "cli"
 
     @classmethod
     def from_context(cls, session_dict: dict[str, Any], user_dict: dict[str, Any]) -> Session:
@@ -24,5 +23,4 @@ class Session:
             locale=session_dict.get("lang", ""),
             user=user_dict.get("name") or user_dict.get("id"),
             user_id=user_dict.get("id"),
-            interaction=session_dict.get("interaction", "cli"),
         )
