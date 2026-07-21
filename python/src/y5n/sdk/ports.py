@@ -82,6 +82,8 @@ def provide(name: str, service: object) -> None:
     Other commands in the same bundle can ``get()`` it.
     """
     callables = _extract_methods(service)
+    if not callables:
+        callables = {"__call__": service}
     _register(
         Register(name=name, methods=list(callables), placement="self"),
         callables,
@@ -94,6 +96,8 @@ def publish(name: str, service: object) -> None:
     Useful for framework services that sub-commands may need.
     """
     callables = _extract_methods(service)
+    if not callables:
+        callables = {"__call__": service}
     _register(
         Register(name=name, methods=list(callables), placement="parent"),
         callables,
@@ -107,6 +111,8 @@ def promote(name: str, service: object) -> None:
     that any command anywhere in the tree can consume via ``get()``.
     """
     callables = _extract_methods(service)
+    if not callables:
+        callables = {"__call__": service}
     _register(
         Register(name=name, methods=list(callables), placement="root"),
         callables,
