@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from y5n.base.host.protocol import Marker, MarkerKind
+from y5n.runtime.engine.host.protocol import Marker, MarkerKind
 from y5n.sdk.models import YdsModel
 
 

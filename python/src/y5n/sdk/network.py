@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from y5n.base.host.protocol import Marker, MarkerKind
+from y5n.runtime.engine.host.protocol import Marker, MarkerKind
 
 
 class _NetworkList:
     def __await__(self):
-        from y5n.base.runtime.bus import get_bus
-        from y5n.base.runtime.context import Call
+        from y5n.runtime.engine.runtime.bus import get_bus
+        from y5n.runtime.engine.runtime.context import Call
 
         bus = get_bus()
         resp = yield from bus.async_dispatch(
@@ -29,8 +29,8 @@ class _NetworkResolve:
         self._name = name
 
     def __await__(self):
-        from y5n.base.runtime.bus import get_bus
-        from y5n.base.runtime.context import Call
+        from y5n.runtime.engine.runtime.bus import get_bus
+        from y5n.runtime.engine.runtime.context import Call
 
         bus = get_bus()
         resp = yield from bus.async_dispatch(
