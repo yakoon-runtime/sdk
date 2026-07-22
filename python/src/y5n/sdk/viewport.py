@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from y5n.runtime.engine.host.protocol import Marker, MarkerKind
+from y5n.runtime.api.host.protocol import Marker, MarkerKind
 
 
 class _View:

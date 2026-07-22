@@ -7,8 +7,8 @@ from typing import Any
 
 
 async def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
-    from y5n.runtime.engine.runtime.context import Call as _RuntimeCall
-    from y5n.runtime.engine.runtime.context import invoke as _runtime_invoke
+    from y5n.runtime.api.runtime.context import Call as _RuntimeCall
+    from y5n.runtime.api.runtime.context import invoke as _runtime_invoke
 
     rc = _RuntimeCall(
         port=call_dict.get("port", ""),
@@ -26,8 +26,8 @@ def register(
 ) -> None:
     import uuid
 
-    from y5n.runtime.engine.runtime.bus import get_bus
-    from y5n.runtime.engine.runtime.messages import Placement, RegisterProvider
+    from y5n.runtime.api.runtime.bus import get_bus
+    from y5n.runtime.api.runtime.messages import Placement, RegisterProvider
 
     placement = {
         "self": Placement.SELF,
