@@ -17,7 +17,9 @@ class Session:
     user_id: str | None = None
 
     @classmethod
-    def from_context(cls, session_dict: dict[str, Any], user_dict: dict[str, Any]) -> Session:
+    def from_context(
+        cls, session_dict: dict[str, Any], user_dict: dict[str, Any]
+    ) -> Session:
         return cls(
             key=session_dict.get("key", ""),
             locale=session_dict.get("lang", ""),

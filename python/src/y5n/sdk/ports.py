@@ -80,7 +80,7 @@ class _PortProxy:
 
 def provide(name: str, service: object) -> None:
     """Register a service visible only within the current node (self).
-    
+
     Other commands in the same bundle can ``get()`` it.
     """
     callables = _extract_methods(service)
@@ -94,7 +94,7 @@ def provide(name: str, service: object) -> None:
 
 def publish(name: str, service: object) -> None:
     """Register a service visible in the current node and its children.
-    
+
     Useful for framework services that sub-commands may need.
     """
     callables = _extract_methods(service)
@@ -108,7 +108,7 @@ def publish(name: str, service: object) -> None:
 
 def promote(name: str, service: object) -> None:
     """Register a service visible across the entire platform (root).
-    
+
     Use this for platform-wide services like ``ident.auth``
     that any command anywhere in the tree can consume via ``get()``.
     """
