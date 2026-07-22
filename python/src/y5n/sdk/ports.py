@@ -14,7 +14,6 @@ Usage:
     print(await hello.greet(name="Yakoon"))
 """
 
-import asyncio
 from typing import Any
 
 from .context import current as _current_context
@@ -70,8 +69,7 @@ class _RemoteCall:
             caller_path=ctx.node.get("path", ""),
             caller_session_key=ctx.session.get("key", ""),
         )
-        task = asyncio.ensure_future(_do_call(call))
-        result = yield task
+        result = yield _do_call(call)
         return result
 
 
