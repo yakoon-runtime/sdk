@@ -58,6 +58,7 @@ class _PortProxy:
             method="__call__",
             args=kwargs,
             caller_path=ctx.node.get("path", ""),
+            caller_session_key=ctx.session.get("key", ""),
         )
         return await _do_call(call)
 
@@ -70,6 +71,7 @@ class _PortProxy:
                 method=name,
                 args=kwargs,
                 caller_path=ctx.node.get("path", ""),
+                caller_session_key=ctx.session.get("key", ""),
             )
             return await _do_call(call)
 

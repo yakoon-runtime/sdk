@@ -15,6 +15,7 @@ async def invoke(call_dict: dict[str, Any]) -> dict[str, Any]:
         method=call_dict.get("method", ""),
         args=call_dict.get("args", {}),
         caller_path=call_dict.get("caller_path", ""),
+        caller_session_key=call_dict.get("caller_session_key", ""),
     )
     rr = await _runtime_invoke(rc)
     return {"result": rr.result, "error": rr.error}
