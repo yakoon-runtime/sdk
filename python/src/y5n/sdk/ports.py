@@ -14,6 +14,7 @@ Usage:
     print(await hello.greet(name="Yakoon"))
 """
 
+import asyncio
 from typing import Any
 
 from .context import current as _current_context
@@ -47,33 +48,44 @@ async def _do_call(call: Call):
     return response.result
 
 
+class _RemoteCall:
+    """Awaitable that wraps a port call in an asyncio.Task.
+
+    Yielding a Task instead of awaiting directly prevents Futures
+    from third-party libraries (e.g. asyncpg) from leaking through
+    drive()'s send() mechanism.
+    """
+
+    def __init__(self, port: str, method: str, kwargs: dict) -> None:
+        self._port = port
+        self._method = method
+        self._kwargs = kwargs
+
+    def __await__(self):
+        ctx = _current_context()
+        call = Call(
+            port=self._port,
+            method=self._method,
+            args=self._kwargs,
+            caller_path=ctx.node.get("path", ""),
+            caller_session_key=ctx.session.get("key", ""),
+        )
+        task = asyncio.ensure_future(_do_call(call))
+        result = yield task
+        return result
+
+
 class _PortProxy:
     def __init__(self, port_name: str):
         self._port = port_name
 
-    async def __call__(self, **kwargs):
-        ctx = _current_context()
-        call = Call(
-            port=self._port,
-            method="__call__",
-            args=kwargs,
-            caller_path=ctx.node.get("path", ""),
-            caller_session_key=ctx.session.get("key", ""),
-        )
-        return await _do_call(call)
+    def __call__(self, **kwargs):
+        return _RemoteCall(self._port, "__call__", kwargs)
 
     def __getattr__(self, name: str):
 
-        async def _call(**kwargs):
-            ctx = _current_context()
-            call = Call(
-                port=self._port,
-                method=name,
-                args=kwargs,
-                caller_path=ctx.node.get("path", ""),
-                caller_session_key=ctx.session.get("key", ""),
-            )
-            return await _do_call(call)
+        def _call(**kwargs):
+            return _RemoteCall(self._port, name, kwargs)
 
         return _call
 
