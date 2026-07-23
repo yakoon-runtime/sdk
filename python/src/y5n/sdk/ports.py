@@ -82,7 +82,13 @@ class _PortProxy:
 
     def __getattr__(self, name: str):
 
-        def _call(**kwargs):
+        def _call(*args, **kwargs):
+            if args:
+                raise TypeError(
+                    f"Port '{self._port}.{name}()' requires keyword arguments, "
+                    f"got {len(args)} positional argument(s). "
+                    f"Use: {self._port}.{name}(param=value)"
+                )
             return _RemoteCall(self._port, name, kwargs)
 
         return _call
