@@ -26,6 +26,38 @@ class _Error:
         yield Marker(MarkerKind.ERROR, self._text)
 
 
+class _Prompt:
+    __slots__ = ("_projection",)
+
+    def __init__(self, projection: dict | str) -> None:
+        self._projection = projection
+
+    def __await__(self):
+        result = yield Marker(MarkerKind.PROMPT, self._projection)
+        return result
+
+
+class _Receive:
+    __slots__ = ("_params",)
+
+    def __init__(self, channel: str | None = None, scope: str | None = None) -> None:
+        self._params = {"channel": channel, "scope": scope}
+
+    def __await__(self):
+        event = yield Marker(MarkerKind.RECEIVE, self._params)
+        return event
+
+
+class _Send:
+    __slots__ = ("_params",)
+
+    def __init__(self, channel: str, payload: Any = None, scope: str = "flow") -> None:
+        self._params = {"channel": channel, "payload": payload, "scope": scope}
+
+    def __await__(self):
+        yield Marker(MarkerKind.SEND, self._params)
+
+
 class _IO:
     def write(
         self,
@@ -40,6 +72,19 @@ class _IO:
     def error(self, text: str) -> _Error:
         return _Error(text)
 
+    def prompt(self, projection: dict | str) -> _Prompt:
+        return _Prompt(projection)
+
+    def receive(
+        self,
+        channel: str | None = None,
+        scope: str | None = None,
+    ) -> _Receive:
+        return _Receive(channel, scope)
+
+    def send(self, channel: str, payload: Any = None, scope: str = "flow") -> _Send:
+        return _Send(channel, payload, scope)
+
 
 io = _IO()
 
@@ -52,4 +97,19 @@ def error(text: str) -> _Error:
     return io.error(text)
 
 
-__all__ = ["error", "io", "write"]
+def prompt(projection: dict | str) -> _Prompt:
+    return io.prompt(projection)
+
+
+def receive(
+    channel: str | None = None,
+    scope: str | None = None,
+) -> _Receive:
+    return io.receive(channel, scope)
+
+
+def send(channel: str, payload: Any = None, scope: str = "flow") -> _Send:
+    return io.send(channel, payload, scope)
+
+
+__all__ = ["error", "io", "prompt", "receive", "send", "write"]
