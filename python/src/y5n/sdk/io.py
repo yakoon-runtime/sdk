@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from y5n.runtime.api.host.protocol import Marker, MarkerKind
+from y5n.sdk.models import Field as _FormFieldDef
 from y5n.sdk.models import YdsModel
 
 
@@ -48,6 +49,17 @@ class _Receive:
         return event
 
 
+class _Form:
+    __slots__ = ("_params",)
+
+    def __init__(self, **params: Any) -> None:
+        self._params = params
+
+    def __await__(self):
+        result = yield Marker(MarkerKind.FORM, self._params)
+        return result
+
+
 class _Send:
     __slots__ = ("_params",)
 
@@ -85,6 +97,24 @@ class _IO:
     def send(self, channel: str, payload: Any = None, scope: str = "flow") -> _Send:
         return _Send(channel, payload, scope)
 
+    def form(
+        self,
+        fields: list[dict | _FormFieldDef],
+        *,
+        title: str = "",
+        intro: str = "",
+        initial: dict[str, str] | None = None,
+        focus: str | None = None,
+    ) -> _Form:
+        raw = [f.to_dict() if isinstance(f, _FormFieldDef) else f for f in fields]
+        return _Form(
+            fields=raw,
+            title=title,
+            intro=intro,
+            initial=initial or {},
+            focus=focus,
+        )
+
 
 io = _IO()
 
@@ -112,4 +142,15 @@ def send(channel: str, payload: Any = None, scope: str = "flow") -> _Send:
     return io.send(channel, payload, scope)
 
 
-__all__ = ["error", "io", "prompt", "receive", "send", "write"]
+def form(
+    fields: list[dict | _FormFieldDef],
+    *,
+    title: str = "",
+    intro: str = "",
+    initial: dict[str, str] | None = None,
+    focus: str | None = None,
+) -> _Form:
+    return io.form(fields, title=title, intro=intro, initial=initial, focus=focus)
+
+
+__all__ = ["error", "form", "io", "prompt", "receive", "send", "write"]

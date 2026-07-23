@@ -17,7 +17,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypeAlias
 
 
 class YdsModel:
@@ -76,11 +76,17 @@ def _resolve_type(prop: PropertyDef) -> str:
     return py_type
 
 
+def _double_quoted(val: str) -> str:
+    return '"' + val[1:-1].replace('"', '\\"') + '"'
+
+
 def _default_repr(prop: PropertyDef) -> str | None:
     if prop.const is not None:
-        return repr(prop.const)
+        val = repr(prop.const)
+        return _double_quoted(val) if isinstance(prop.const, str) else val
     if prop.default is not None:
-        return repr(prop.default)
+        val = repr(prop.default)
+        return _double_quoted(val) if isinstance(prop.default, str) else val
     if prop.nullable:
         return "None"
     if prop.type_ref == "array" and prop.items_ref:
@@ -174,8 +180,8 @@ def emit(schema: Schema) -> str:
     inline_names = [cls.name for cls in inline_types]
 
     if block_names:
-        parts.append(f"\n\nBlock = {' | '.join(block_names)}")
+        parts.append("\n\nBlock: TypeAlias = (" + "\n".join(f"    {n} |" for n in block_names[:-1]) + f"\n    {block_names[-1]}\n)")
     if inline_names:
-        parts.append(f"\n\nInline = {' | '.join(inline_names)}")
+        parts.append("\n\nInline: TypeAlias = (" + "\n".join(f"    {n} |" for n in inline_names[:-1]) + f"\n    {inline_names[-1]}\n)")
 
     return "".join(parts)

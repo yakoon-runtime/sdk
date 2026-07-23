@@ -10,7 +10,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypeAlias
 
 
 class YdsModel:
@@ -293,7 +293,8 @@ class TableColumn(YdsModel):
 class Field(YdsModel):
     """A single input field definition."""
 
-    policy: str
+    key: str
+    policy: str | None = None
     name: str | None = None
     required: bool = False
     title: str | None = None
@@ -331,7 +332,7 @@ class Document(YdsModel):
     blocks: Sequence[Block] = field(default_factory=list)
 
 
-Block = (
+Block: TypeAlias = (
     Text
     | Paragraph
     | Heading
@@ -352,7 +353,7 @@ Block = (
     | Image
 )
 
-Inline = (
+Inline: TypeAlias = (
     InlineText
     | InlineStrong
     | InlineEm
