@@ -1,8 +1,8 @@
 """CLI entry point for the YDS code generator.
 
 Usage:
-    python -m yakoon.sdk.gen --input spec/yds/yds-v1.yaml --output models.py
-    python -m yakoon.sdk.gen --input spec/yds/yds-v1.yaml --output models.py --language python
+    python -m y5n.sdk.gen --input spec/yds/yds-v1.yaml --output models.py
+    python -m y5n.sdk.gen --input spec/yds/yds-v1.yaml --output models.py --language python
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .emit_python import emit as emit_python
+from .emit.python import emit as emit_python
 from .parser import parse
 
 

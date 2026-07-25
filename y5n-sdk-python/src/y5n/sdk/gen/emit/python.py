@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .model import ClassDef, PropertyDef, Schema
+from ..model import ClassDef, PropertyDef, Schema
 
 _HEADER = """\
 # -----------------------------------------------------------------------------
@@ -180,8 +180,16 @@ def emit(schema: Schema) -> str:
     inline_names = [cls.name for cls in inline_types]
 
     if block_names:
-        parts.append("\n\nBlock: TypeAlias = (" + "\n".join(f"    {n} |" for n in block_names[:-1]) + f"\n    {block_names[-1]}\n)")
+        parts.append(
+            "\n\nBlock: TypeAlias = ("
+            + "\n".join(f"    {n} |" for n in block_names[:-1])
+            + f"\n    {block_names[-1]}\n)"
+        )
     if inline_names:
-        parts.append("\n\nInline: TypeAlias = (" + "\n".join(f"    {n} |" for n in inline_names[:-1]) + f"\n    {inline_names[-1]}\n)")
+        parts.append(
+            "\n\nInline: TypeAlias = ("
+            + "\n".join(f"    {n} |" for n in inline_names[:-1])
+            + f"\n    {inline_names[-1]}\n)"
+        )
 
     return "".join(parts)
