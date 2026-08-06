@@ -13,8 +13,8 @@ from y5n.runtime.api.flow.primitives import (
     Mode,
     Pulse,
 )
-from y5n.runtime.api.nodes import Param
 from y5n.runtime.api.runtime import Event
+from y5n.runtime.api.runtime.invocation import Param
 from y5n.sdk.models import Document, Header, InlineText, Text, YdsModel
 from y5n.sdk.models import Field as _FormFieldDef
 
