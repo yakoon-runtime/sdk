@@ -15,6 +15,7 @@ class Context:
     session: dict[str, Any] = field(default_factory=dict)
     flow: dict[str, Any] = field(default_factory=dict)
     args: list[str] = field(default_factory=list)
+    error: dict[str, Any] | None = None
     trace_id: str | None = None
 
     @classmethod
@@ -27,6 +28,7 @@ class Context:
             session=data.get("session", {}),
             flow=data.get("flow", {}),
             args=data.get("args", []),
+            error=data.get("error"),
             trace_id=data.get("trace_id"),
         )
 

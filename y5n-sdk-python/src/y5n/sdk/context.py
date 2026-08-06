@@ -16,6 +16,8 @@ Usage:
 
 from __future__ import annotations
 
+from typing import Any
+
 from y5n.runtime.api.runtime.context import current_context
 
 from .libs.models import Context as _Ctx
@@ -46,10 +48,22 @@ def session() -> _Session:
     return _Session.from_context(ctx.session, ctx.user)
 
 
+def error() -> dict[str, Any] | None:
+    """Return the error payload of the current invocation, if any.
+
+    A normal command invocation has no error payload (``None``). An
+    error invocation (ADR: an error creates a new invocation) carries
+    the exception's description here — type, message, and the fields
+    the raising site attached.
+    """
+    ctx = current()
+    return ctx.error
+
+
 def flow() -> _Flow:
     """Return a Flow object built from the current context."""
     ctx = current()
     return _Flow.from_dict(ctx.flow)
 
 
-__all__ = ["current", "flow", "request", "session"]
+__all__ = ["current", "error", "flow", "request", "session"]
