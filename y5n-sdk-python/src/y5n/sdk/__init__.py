@@ -2,7 +2,8 @@
 
 Usage:
     from y5n.sdk import (
-        context, fs, io, models, ports, scheduler, session, network, viewport,
+        context, fs, io, models, ports, scheduler, security, session,
+        network, viewport,
     )
 
     ctx = context.current()
@@ -10,7 +11,7 @@ Usage:
     ports.provide("svc", {...})
 """
 
-from . import context, models, ports
+from . import context, models, ports, security
 from .fs import fs
 from .io import io
 from .network import network
@@ -29,6 +30,7 @@ __all__ = [
     "network",
     "ports",
     "scheduler",
+    "security",
     "session",
     "timer",
     "viewport",
