@@ -70,6 +70,11 @@ async def get_many(keys: list[str]) -> list[dict]:
     return await _call("get_many", keys=keys)
 
 
+async def history(key: str) -> list[dict]:
+    """Return the revisions of an entity — the history, not current state."""
+    return await _call("history", key=key)
+
+
 async def append(
     key: str,
     patch: list[dict] | dict,
@@ -227,6 +232,9 @@ class StoreClient:
         results = await get_many(keys=[str(k) for k in keys])
         return [_get_result(r) for r in results]
 
+    async def history(self, *, key: Key) -> list[dict]:
+        return await history(key=str(key))
+
     async def append(
         self,
         *,
@@ -347,6 +355,7 @@ __all__ = [
     "ensure_indexes",
     "get",
     "get_many",
+    "history",
     "next_id",
     "query_index",
     "record",
