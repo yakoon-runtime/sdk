@@ -67,23 +67,25 @@ def _call(method: str, **args: Any):
 # --------------------------------
 
 
-async def get(key: str, at_time: str | None = None) -> dict:
+async def get(key: dict, at_time: str | None = None) -> dict:
     return await _call("get", key=key, at_time=at_time)
 
 
-async def get_many(keys: list[str]) -> list[dict]:
+async def get_many(keys: list[dict]) -> list[dict]:
     return await _call("get_many", keys=keys)
 
 
-async def history(key: str) -> list[dict]:
+async def history(key: dict) -> list[dict]:
     """Return the revisions of an entity — the history, not current state."""
     return await _call("history", key=key)
 
 
 async def append(
-    key: str,
+    key: dict,
     patch: list[dict] | dict,
     indexes: list[dict] | None = None,
+    snapshot_hint: str | None = None,
+    meta: dict | None = None,
     expected_rev: int | None = None,
 ) -> dict:
     return await _call(
@@ -91,14 +93,17 @@ async def append(
         key=key,
         patch=patch,
         indexes=indexes,
+        snapshot_hint=snapshot_hint,
+        meta=meta,
         expected_rev=expected_rev,
     )
 
 
 async def replace(
-    key: str,
+    key: dict,
     doc: dict,
     indexes: list[dict] | None = None,
+    snapshot_hint: str | None = None,
     expected_rev: int | None = None,
 ) -> dict:
     return await _call(
@@ -106,15 +111,17 @@ async def replace(
         key=key,
         doc=doc,
         indexes=indexes,
+        snapshot_hint=snapshot_hint,
         expected_rev=expected_rev,
     )
 
 
 async def record(
-    key: str,
+    key: dict,
     doc: dict,
     expected_rev: int | None = None,
     context: dict | None = None,
+    indexes: list[dict] | None = None,
 ) -> dict:
     return await _call(
         "record",
@@ -122,11 +129,14 @@ async def record(
         doc=doc,
         expected_rev=expected_rev,
         context=context,
+        indexes=indexes,
     )
 
 
-async def delete(key: str, expected_rev: int | None = None) -> dict:
-    return await _call("delete", key=key, expected_rev=expected_rev)
+async def delete(
+    key: dict, meta: dict | None = None, expected_rev: int | None = None
+) -> dict:
+    return await _call("delete", key=key, meta=meta, expected_rev=expected_rev)
 
 
 async def scan(
@@ -180,8 +190,27 @@ async def next_id(prefix: str) -> str:
 # --------------------------------
 
 
-def _parse_key(raw: str) -> Key:
-    return Key.from_str(raw)
+def _parse_key(raw: dict) -> Key:
+    ns = raw.get("namespace") or {}
+    return Key(
+        namespace=Namespace(
+            domain=ns.get("domain"),
+            kind=ns.get("kind"),
+            space=ns.get("space", "global"),
+        ),
+        id=raw.get("id", ""),
+    )
+
+
+def _key_to_dict(key: Key) -> dict:
+    return {
+        "namespace": {
+            "domain": key.namespace.domain,
+            "kind": key.namespace.kind,
+            "space": key.namespace.space,
+        },
+        "id": key.id,
+    }
 
 
 def _parse_ns(raw: str) -> Namespace:
@@ -221,7 +250,7 @@ class StoreClient:
     """Typed facade over the runtime's shared Event Store."""
 
     async def get(self, *, key: Key, at_time=None) -> GetResult:
-        result = await get(key=str(key), at_time=at_time)
+        result = await get(key=_key_to_dict(key), at_time=at_time)
         if result is None:
             return GetResult(
                 key=key,
@@ -234,11 +263,11 @@ class StoreClient:
         return _get_result(result)
 
     async def get_many(self, *, keys) -> list[GetResult]:
-        results = await get_many(keys=[str(k) for k in keys])
+        results = await get_many(keys=[_key_to_dict(k) for k in keys])
         return [_get_result(r) for r in results]
 
     async def history(self, *, key: Key) -> list[dict]:
-        return await history(key=str(key))
+        return await history(key=_key_to_dict(key))
 
     async def append(
         self,
@@ -246,12 +275,16 @@ class StoreClient:
         key: Key,
         patch,
         indexes=(),
+        snapshot_hint=None,
+        meta=None,
         expected_rev=None,
     ) -> PutResult:
         result = await append(
-            key=str(key),
+            key=_key_to_dict(key),
             patch=patch,
             indexes=_terms(indexes),
+            snapshot_hint=snapshot_hint,
+            meta=meta,
             expected_rev=expected_rev,
         )
         return _put_result(result)
@@ -262,12 +295,14 @@ class StoreClient:
         key: Key,
         doc,
         indexes=(),
+        snapshot_hint=None,
         expected_rev=None,
     ) -> PutResult:
         result = await replace(
-            key=str(key),
+            key=_key_to_dict(key),
             doc=doc,
             indexes=_terms(indexes),
+            snapshot_hint=snapshot_hint,
             expected_rev=expected_rev,
         )
         return _put_result(result)
@@ -279,17 +314,21 @@ class StoreClient:
         doc,
         expected_rev=None,
         context=None,
+        indexes=(),
     ) -> PutResult:
         result = await record(
-            key=str(key),
+            key=_key_to_dict(key),
             doc=doc,
             expected_rev=expected_rev,
             context=context,
+            indexes=_terms(indexes),
         )
         return _put_result(result)
 
-    async def delete(self, *, key: Key, expected_rev=None) -> PutResult:
-        result = await delete(key=str(key), expected_rev=expected_rev)
+    async def delete(self, *, key: Key, meta=None, expected_rev=None) -> PutResult:
+        result = await delete(
+            key=_key_to_dict(key), meta=meta, expected_rev=expected_rev
+        )
         return _put_result(result)
 
     async def scan(
