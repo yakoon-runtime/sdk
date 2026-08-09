@@ -18,7 +18,7 @@ from .network import network
 from .resources import Resource
 from .scheduler import scheduler
 from .session import session
-from . import store
+from .store import store
 from .timer import timer
 from .viewport import viewport
 

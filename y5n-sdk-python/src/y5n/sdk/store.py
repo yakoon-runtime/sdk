@@ -4,15 +4,20 @@ Usage:
 
     from y5n.sdk import store
 
-    client = store.StoreClient()
+    client = store()
     await client.replace(key=box_key(...), doc={...})
     await client.record(key=..., doc={"kind": "read"})
 
 The store belongs to the runtime, not the pack. Every write carries
 context and audit automatically — a command never passes an audit flag.
+A pack only ever says "I need persistence"; the runtime decides how it is
+provided. ``store()`` returns the shared store client; later the same call
+may accept a profile (``store(profile="telemetry")``) without the pack
+changing.
 
 Two layers:
-- ``StoreClient`` — typed facade over the shared store; keys travel as
+- ``store()`` — the stable public entry point, returns a ``StoreClient``.
+- ``StoreClient`` — the typed facade over the shared store; keys travel as
   ``Key`` objects, results come back as ``GetResult``/``PutResult``.
 - the module-level functions below — RPC-safe primitives (string keys,
   dict results) used by ``StoreClient`` and available for direct use.
@@ -348,6 +353,16 @@ class StoreClient:
         return await next_id(prefix=prefix)
 
 
+def store() -> StoreClient:
+    """Return the runtime's shared store client (ADR-17).
+
+    The stable public entry point. The implementation may evolve
+    (profiles, multiple physical stores) behind this call without the
+    pack changing.
+    """
+    return StoreClient()
+
+
 __all__ = [
     "StoreClient",
     "append",
@@ -361,4 +376,5 @@ __all__ = [
     "record",
     "replace",
     "scan",
+    "store",
 ]
