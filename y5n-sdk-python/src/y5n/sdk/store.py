@@ -342,7 +342,7 @@ class StoreClient:
         limit=100,
         prefix=None,
         cursor=None,
-    ) -> list[GetResult]:
+    ) -> tuple[list[Key], str | None]:
         page = await scan(
             namespace=namespace.to_str(),
             index_key=str(index_key),
@@ -354,7 +354,7 @@ class StoreClient:
             cursor=cursor,
         )
         keys = [_parse_key(k) for k in page["keys"]]
-        return await self.get_many(keys=keys)
+        return keys, page.get("cursor")
 
     async def query_index(
         self,
