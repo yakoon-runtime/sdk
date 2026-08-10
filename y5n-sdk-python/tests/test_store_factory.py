@@ -1,8 +1,9 @@
-"""Store factory (ADR-18): `sdk.store()` resolves the caller's stores.
+"""Store factory (ADR-18, ADR-19): `sdk.store()` resolves the caller's stores.
 
 Without a name: no declared store → default; one declared store → that
-store; several declared stores → error. The ambiguity is surfaced at the
-API, never resolved implicitly.
+store; several declared stores → error. With a name: the store must be
+declared — an undeclared dependency is an error. Ambiguity and undeclared
+access are surfaced at the API, never resolved implicitly.
 """
 
 from __future__ import annotations
@@ -42,5 +43,14 @@ def test_store_with_name_uses_it():
     try:
         client = store("telemetry")
         assert client._name == "telemetry"
+    finally:
+        set_context({})
+
+
+def test_store_with_undeclared_name_raises():
+    set_context({"node": {"path": "/crm/sync", "stores": ["crm"]}})
+    try:
+        with pytest.raises(ValueError, match="Undeclared store 'telemetry'"):
+            store("telemetry")
     finally:
         set_context({})

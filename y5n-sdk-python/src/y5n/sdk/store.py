@@ -440,7 +440,7 @@ class StoreClient:
 
 
 def store(name: str | None = None) -> StoreClient:
-    """Return a client for a logical store (ADR-18).
+    """Return a client for a logical store (ADR-18, ADR-19).
 
     The stable public entry point. ``name`` is a logical store the pack
     declared (``store("crm")``) — never infrastructure.
@@ -451,14 +451,20 @@ def store(name: str | None = None) -> StoreClient:
     - exactly one declared store → that store;
     - several declared stores → error, the ambiguity must be resolved.
 
-    The resolution happens here, at the API — an ambiguous call never
-    travels through the bus.
+    With a name, the store must be declared: an undeclared dependency is
+    an error, like an import whose module is not in the requirements
+    (ADR-19). The resolution happens here, at the API — neither an
+    ambiguous nor an undeclared call travels through the bus.
     """
+    declared = list(_current_context().node.get("stores") or [])
     if name is None:
-        declared = list(_current_context().node.get("stores") or [])
         if len(declared) > 1:
             raise ValueError("Multiple stores declared. Please specify a store name.")
         name = declared[0] if declared else None
+    elif name not in declared:
+        raise ValueError(
+            f"Undeclared store '{name}'. Add it to the pack's stores: declaration."
+        )
     return StoreClient(name=name)
 
 
