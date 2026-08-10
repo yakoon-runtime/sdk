@@ -29,7 +29,7 @@ from datetime import datetime
 from typing import Any
 
 from y5n.runtime.api.naming import Key, Namespace
-from y5n.runtime.store.event.models import GetResult, PutResult
+from y5n.runtime.store.event.models import EntityId, GetResult, PutResult
 
 from .context import current as _current_context
 from .libs import transport as _transport
@@ -220,9 +220,9 @@ def _parse_key(raw: dict) -> Key:
     ns = raw.get("namespace") or {}
     return Key(
         namespace=Namespace(
-            domain=ns.get("domain"),
-            kind=ns.get("kind"),
-            space=ns.get("space", "global"),
+            domain=ns.get("domain") or "",
+            kind=ns.get("kind") or "",
+            space=ns.get("space", "global") or "global",
         ),
         id=raw.get("id", ""),
     )
@@ -290,7 +290,7 @@ class StoreClient:
         if result is None:
             return GetResult(
                 key=key,
-                entity_id=key.id,
+                entity_id=EntityId(key.id),
                 data=None,
                 rev=None,
                 as_of=datetime.min,
