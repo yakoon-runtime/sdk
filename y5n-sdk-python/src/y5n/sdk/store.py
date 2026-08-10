@@ -50,7 +50,7 @@ async def _do_call(call: Call):
     return response.result
 
 
-def _call(method: str, **args: Any):
+def _call(method: str, store_name: str | None = None, **args: Any):
     ctx = _current_context()
     call = Call(
         port="store",
@@ -58,6 +58,7 @@ def _call(method: str, **args: Any):
         args=args,
         caller_path=ctx.node.get("path", ""),
         caller_session_key=ctx.session.get("key", ""),
+        store_name=store_name,
     )
     return _do_call(call)
 
@@ -67,17 +68,19 @@ def _call(method: str, **args: Any):
 # --------------------------------
 
 
-async def get(key: dict, at_time: str | None = None) -> dict:
-    return await _call("get", key=key, at_time=at_time)
+async def get(
+    key: dict, at_time: str | None = None, store_name: str | None = None
+) -> dict:
+    return await _call("get", store_name=store_name, key=key, at_time=at_time)
 
 
-async def get_many(keys: list[dict]) -> list[dict]:
-    return await _call("get_many", keys=keys)
+async def get_many(keys: list[dict], store_name: str | None = None) -> list[dict]:
+    return await _call("get_many", store_name=store_name, keys=keys)
 
 
-async def history(key: dict) -> list[dict]:
+async def history(key: dict, store_name: str | None = None) -> list[dict]:
     """Return the revisions of an entity — the history, not current state."""
-    return await _call("history", key=key)
+    return await _call("history", store_name=store_name, key=key)
 
 
 async def append(
@@ -87,9 +90,11 @@ async def append(
     snapshot_hint: str | None = None,
     meta: dict | None = None,
     expected_rev: int | None = None,
+    store_name: str | None = None,
 ) -> dict:
     return await _call(
         "append",
+        store_name=store_name,
         key=key,
         patch=patch,
         indexes=indexes,
@@ -105,9 +110,11 @@ async def replace(
     indexes: list[dict] | None = None,
     snapshot_hint: str | None = None,
     expected_rev: int | None = None,
+    store_name: str | None = None,
 ) -> dict:
     return await _call(
         "replace",
+        store_name=store_name,
         key=key,
         doc=doc,
         indexes=indexes,
@@ -122,9 +129,11 @@ async def record(
     expected_rev: int | None = None,
     context: dict | None = None,
     indexes: list[dict] | None = None,
+    store_name: str | None = None,
 ) -> dict:
     return await _call(
         "record",
+        store_name=store_name,
         key=key,
         doc=doc,
         expected_rev=expected_rev,
@@ -134,9 +143,18 @@ async def record(
 
 
 async def delete(
-    key: dict, meta: dict | None = None, expected_rev: int | None = None
+    key: dict,
+    meta: dict | None = None,
+    expected_rev: int | None = None,
+    store_name: str | None = None,
 ) -> dict:
-    return await _call("delete", key=key, meta=meta, expected_rev=expected_rev)
+    return await _call(
+        "delete",
+        store_name=store_name,
+        key=key,
+        meta=meta,
+        expected_rev=expected_rev,
+    )
 
 
 async def scan(
@@ -148,9 +166,11 @@ async def scan(
     limit: int = 100,
     prefix: str | None = None,
     cursor: str | None = None,
+    store_name: str | None = None,
 ) -> dict:
     return await _call(
         "scan",
+        store_name=store_name,
         namespace=namespace,
         index_key=index_key,
         value=value,
@@ -162,8 +182,12 @@ async def scan(
     )
 
 
-async def ensure_indexes(namespace: str, specs: list[dict]) -> None:
-    return await _call("ensure_indexes", namespace=namespace, specs=specs)
+async def ensure_indexes(
+    namespace: str, specs: list[dict], store_name: str | None = None
+) -> None:
+    return await _call(
+        "ensure_indexes", store_name=store_name, namespace=namespace, specs=specs
+    )
 
 
 async def query_index(
@@ -171,9 +195,11 @@ async def query_index(
     terms: list[dict],
     mode: str = "and",
     limit: int = 100,
+    store_name: str | None = None,
 ) -> dict:
     return await _call(
         "query_index",
+        store_name=store_name,
         namespace=namespace,
         terms=terms,
         mode=mode,
@@ -181,8 +207,8 @@ async def query_index(
     )
 
 
-async def next_id(prefix: str) -> str:
-    return await _call("next_id", prefix=prefix)
+async def next_id(prefix: str, store_name: str | None = None) -> str:
+    return await _call("next_id", store_name=store_name, prefix=prefix)
 
 
 # --------------------------------
@@ -247,10 +273,20 @@ def _terms(indexes):
 
 
 class StoreClient:
-    """Typed facade over the runtime's shared Event Store."""
+    """Typed facade over a logical store (ADR-18).
+
+    ``name`` is the logical store this client is bound to (``crm``,
+    ``telemetry``) — a name the pack declared, never infrastructure. When
+    ``None``, the runtime resolves the caller's first declared store.
+    """
+
+    def __init__(self, name: str | None = None) -> None:
+        self._name = name
 
     async def get(self, *, key: Key, at_time=None) -> GetResult:
-        result = await get(key=_key_to_dict(key), at_time=at_time)
+        result = await get(
+            key=_key_to_dict(key), at_time=at_time, store_name=self._name
+        )
         if result is None:
             return GetResult(
                 key=key,
@@ -263,11 +299,13 @@ class StoreClient:
         return _get_result(result)
 
     async def get_many(self, *, keys) -> list[GetResult]:
-        results = await get_many(keys=[_key_to_dict(k) for k in keys])
+        results = await get_many(
+            keys=[_key_to_dict(k) for k in keys], store_name=self._name
+        )
         return [_get_result(r) for r in results]
 
     async def history(self, *, key: Key) -> list[dict]:
-        return await history(key=_key_to_dict(key))
+        return await history(key=_key_to_dict(key), store_name=self._name)
 
     async def append(
         self,
@@ -286,6 +324,7 @@ class StoreClient:
             snapshot_hint=snapshot_hint,
             meta=meta,
             expected_rev=expected_rev,
+            store_name=self._name,
         )
         return _put_result(result)
 
@@ -304,6 +343,7 @@ class StoreClient:
             indexes=_terms(indexes),
             snapshot_hint=snapshot_hint,
             expected_rev=expected_rev,
+            store_name=self._name,
         )
         return _put_result(result)
 
@@ -322,12 +362,16 @@ class StoreClient:
             expected_rev=expected_rev,
             context=context,
             indexes=_terms(indexes),
+            store_name=self._name,
         )
         return _put_result(result)
 
     async def delete(self, *, key: Key, meta=None, expected_rev=None) -> PutResult:
         result = await delete(
-            key=_key_to_dict(key), meta=meta, expected_rev=expected_rev
+            key=_key_to_dict(key),
+            meta=meta,
+            expected_rev=expected_rev,
+            store_name=self._name,
         )
         return _put_result(result)
 
@@ -352,6 +396,7 @@ class StoreClient:
             limit=limit,
             prefix=prefix,
             cursor=cursor,
+            store_name=self._name,
         )
         keys = [_parse_key(k) for k in page["keys"]]
         return keys, page.get("cursor")
@@ -372,6 +417,7 @@ class StoreClient:
             ],
             mode=mode,
             limit=limit,
+            store_name=self._name,
         )
         return [_parse_key(k) for k in page["keys"]]
 
@@ -386,20 +432,34 @@ class StoreClient:
                 }
                 for s in specs
             ],
+            store_name=self._name,
         )
 
     async def next_id(self, prefix: str) -> str:
-        return await next_id(prefix=prefix)
+        return await next_id(prefix=prefix, store_name=self._name)
 
 
-def store() -> StoreClient:
-    """Return the runtime's shared store client (ADR-17).
+def store(name: str | None = None) -> StoreClient:
+    """Return a client for a logical store (ADR-18).
 
-    The stable public entry point. The implementation may evolve
-    (profiles, multiple physical stores) behind this call without the
-    pack changing.
+    The stable public entry point. ``name`` is a logical store the pack
+    declared (``store("crm")``) — never infrastructure.
+
+    Without a name, the caller's declared stores decide:
+
+    - no stores declared → the default store;
+    - exactly one declared store → that store;
+    - several declared stores → error, the ambiguity must be resolved.
+
+    The resolution happens here, at the API — an ambiguous call never
+    travels through the bus.
     """
-    return StoreClient()
+    if name is None:
+        declared = list(_current_context().node.get("stores") or [])
+        if len(declared) > 1:
+            raise ValueError("Multiple stores declared. Please specify a store name.")
+        name = declared[0] if declared else None
+    return StoreClient(name=name)
 
 
 __all__ = [

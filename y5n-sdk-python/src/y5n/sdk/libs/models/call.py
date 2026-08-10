@@ -13,6 +13,7 @@ class Call:
     args: dict[str, Any] = field(default_factory=dict)
     caller_path: str = ""
     caller_session_key: str = ""
+    store_name: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Call:
@@ -22,6 +23,7 @@ class Call:
             args=data.get("args", {}),
             caller_path=data.get("caller_path", ""),
             caller_session_key=data.get("caller_session_key", ""),
+            store_name=data.get("store_name"),
         )
 
     def to_dict(self) -> dict[str, Any]:
