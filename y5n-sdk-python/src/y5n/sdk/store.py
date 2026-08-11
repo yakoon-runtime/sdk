@@ -1,26 +1,26 @@
-"""Store — the runtime-provided Event Store (ADR-17).
+"""Store — the SDK facade for the runtime-provided Event Store (ADR-17).
 
 Usage:
 
     from y5n.sdk import store
 
-    client = store()
+    client = store.get("crm")
     await client.replace(key=box_key(...), doc={...})
     await client.record(key=..., doc={"kind": "read"})
 
 The store belongs to the runtime, not the pack. Every write carries
 context and audit automatically — a command never passes an audit flag.
 A pack only ever says "I need persistence"; the runtime decides how it is
-provided. ``store()`` returns the shared store client; later the same call
-may accept a profile (``store(profile="telemetry")``) without the pack
-changing.
+provided. ``store.get("crm")`` returns a client bound to the logical store
+``crm``.
 
-Two layers:
-- ``store()`` — the stable public entry point, returns a ``StoreClient``.
-- ``StoreClient`` — the typed facade over the shared store; keys travel as
-  ``Key`` objects, results come back as ``GetResult``/``PutResult``.
-- the module-level functions below — RPC-safe primitives (string keys,
-  dict results) used by ``StoreClient`` and available for direct use.
+Layers:
+- ``store`` — the SDK facade (mirrors ``ports``); ``store.get(name)``
+  returns a ``StoreClient`` bound to the logical store ``name``.
+- ``StoreClient`` — the typed facade over the shared store; keys travel
+  as ``Key`` objects, results come back as ``GetResult``/``PutResult``.
+- the ``_``-prefixed functions below — RPC-safe primitives (string keys,
+  dict results) used by ``StoreClient``.
 """
 
 from __future__ import annotations
@@ -68,22 +68,22 @@ def _call(method: str, store_name: str | None = None, **args: Any):
 # --------------------------------
 
 
-async def get(
+async def _get(
     key: dict, at_time: str | None = None, store_name: str | None = None
 ) -> dict:
     return await _call("get", store_name=store_name, key=key, at_time=at_time)
 
 
-async def get_many(keys: list[dict], store_name: str | None = None) -> list[dict]:
+async def _get_many(keys: list[dict], store_name: str | None = None) -> list[dict]:
     return await _call("get_many", store_name=store_name, keys=keys)
 
 
-async def history(key: dict, store_name: str | None = None) -> list[dict]:
+async def _history(key: dict, store_name: str | None = None) -> list[dict]:
     """Return the revisions of an entity — the history, not current state."""
     return await _call("history", store_name=store_name, key=key)
 
 
-async def append(
+async def _append(
     key: dict,
     patch: list[dict] | dict,
     indexes: list[dict] | None = None,
@@ -104,7 +104,7 @@ async def append(
     )
 
 
-async def replace(
+async def _replace(
     key: dict,
     doc: dict,
     indexes: list[dict] | None = None,
@@ -123,7 +123,7 @@ async def replace(
     )
 
 
-async def record(
+async def _record(
     key: dict,
     doc: dict,
     expected_rev: int | None = None,
@@ -142,7 +142,7 @@ async def record(
     )
 
 
-async def delete(
+async def _delete(
     key: dict,
     meta: dict | None = None,
     expected_rev: int | None = None,
@@ -157,7 +157,7 @@ async def delete(
     )
 
 
-async def scan(
+async def _scan(
     namespace: str,
     index_key: str,
     value: str | int | float | bool | None = None,
@@ -182,7 +182,7 @@ async def scan(
     )
 
 
-async def ensure_indexes(
+async def _ensure_indexes(
     namespace: str, specs: list[dict], store_name: str | None = None
 ) -> None:
     return await _call(
@@ -190,7 +190,7 @@ async def ensure_indexes(
     )
 
 
-async def query_index(
+async def _query_index(
     namespace: str,
     terms: list[dict],
     mode: str = "and",
@@ -207,7 +207,7 @@ async def query_index(
     )
 
 
-async def next_id(prefix: str, store_name: str | None = None) -> str:
+async def _next_id(prefix: str, store_name: str | None = None) -> str:
     return await _call("next_id", store_name=store_name, prefix=prefix)
 
 
@@ -284,7 +284,7 @@ class StoreClient:
         self._name = name
 
     async def get(self, *, key: Key, at_time=None) -> GetResult:
-        result = await get(
+        result = await _get(
             key=_key_to_dict(key), at_time=at_time, store_name=self._name
         )
         if result is None:
@@ -299,13 +299,13 @@ class StoreClient:
         return _get_result(result)
 
     async def get_many(self, *, keys) -> list[GetResult]:
-        results = await get_many(
+        results = await _get_many(
             keys=[_key_to_dict(k) for k in keys], store_name=self._name
         )
         return [_get_result(r) for r in results]
 
     async def history(self, *, key: Key) -> list[dict]:
-        return await history(key=_key_to_dict(key), store_name=self._name)
+        return await _history(key=_key_to_dict(key), store_name=self._name)
 
     async def append(
         self,
@@ -317,7 +317,7 @@ class StoreClient:
         meta=None,
         expected_rev=None,
     ) -> PutResult:
-        result = await append(
+        result = await _append(
             key=_key_to_dict(key),
             patch=patch,
             indexes=_terms(indexes),
@@ -337,7 +337,7 @@ class StoreClient:
         snapshot_hint=None,
         expected_rev=None,
     ) -> PutResult:
-        result = await replace(
+        result = await _replace(
             key=_key_to_dict(key),
             doc=doc,
             indexes=_terms(indexes),
@@ -356,7 +356,7 @@ class StoreClient:
         context=None,
         indexes=(),
     ) -> PutResult:
-        result = await record(
+        result = await _record(
             key=_key_to_dict(key),
             doc=doc,
             expected_rev=expected_rev,
@@ -367,7 +367,7 @@ class StoreClient:
         return _put_result(result)
 
     async def delete(self, *, key: Key, meta=None, expected_rev=None) -> PutResult:
-        result = await delete(
+        result = await _delete(
             key=_key_to_dict(key),
             meta=meta,
             expected_rev=expected_rev,
@@ -387,7 +387,7 @@ class StoreClient:
         prefix=None,
         cursor=None,
     ) -> tuple[list[Key], str | None]:
-        page = await scan(
+        page = await _scan(
             namespace=namespace.to_str(),
             index_key=str(index_key),
             value=value,
@@ -409,7 +409,7 @@ class StoreClient:
         mode="and",
         limit=100,
     ) -> list[Key]:
-        page = await query_index(
+        page = await _query_index(
             namespace=namespace.to_str(),
             terms=[
                 {"index_key": str(t.index_key), "op": t.op, "value": t.value}
@@ -422,7 +422,7 @@ class StoreClient:
         return [_parse_key(k) for k in page["keys"]]
 
     async def ensure_indexes(self, *, namespace: Namespace, specs) -> None:
-        await ensure_indexes(
+        await _ensure_indexes(
             namespace=namespace.to_str(),
             specs=[
                 {
@@ -436,50 +436,40 @@ class StoreClient:
         )
 
     async def next_id(self, prefix: str) -> str:
-        return await next_id(prefix=prefix, store_name=self._name)
+        return await _next_id(prefix=prefix, store_name=self._name)
 
 
-def store(name: str | None = None) -> StoreClient:
-    """Return a client for a logical store (ADR-18, ADR-19).
+class Store:
+    """SDK facade for the store capability.
 
-    The stable public entry point. ``name`` is a logical store the pack
-    declared (``store("crm")``) — never infrastructure.
-
-    Without a name, the caller's declared stores decide:
-
-    - no stores declared → the default store;
-    - exactly one declared store → that store;
-    - several declared stores → error, the ambiguity must be resolved.
-
-    With a name, the store must be declared: an undeclared dependency is
-    an error, like an import whose module is not in the requirements
-    (ADR-19). The resolution happens here, at the API — neither an
-    ambiguous nor an undeclared call travels through the bus.
+    ``store`` mirrors ``ports``: the entry point into the Store API. Use
+    ``store.get("crm")`` to bind a client for the logical store ``crm``.
     """
-    declared = list(_current_context().node.get("stores") or [])
-    if name is None:
+
+    def get(self, name: str | None = None) -> StoreClient:
+        """Return a client for a logical store (ADR-18, ADR-19).
+
+        ``name`` is a logical store — the runtime routes the client to the
+        store the installation built for it.
+
+        Without a name, the caller's declared stores decide:
+
+        - exactly one declared store → that store;
+        - several declared stores → error, the ambiguity must be resolved;
+        - no declared store → an unbound client (no store for its calls).
+        """
+        if name is not None:
+            return StoreClient(name=name)
+        declared = list(_current_context().node.get("stores") or [])
         if len(declared) > 1:
             raise ValueError("Multiple stores declared. Please specify a store name.")
-        name = declared[0] if declared else None
-    elif name not in declared:
-        raise ValueError(
-            f"Undeclared store '{name}'. Add it to the pack's stores: declaration."
-        )
-    return StoreClient(name=name)
+        return StoreClient(name=declared[0] if declared else None)
+
+
+store = Store()
 
 
 __all__ = [
     "StoreClient",
-    "append",
-    "delete",
-    "ensure_indexes",
-    "get",
-    "get_many",
-    "history",
-    "next_id",
-    "query_index",
-    "record",
-    "replace",
-    "scan",
     "store",
 ]

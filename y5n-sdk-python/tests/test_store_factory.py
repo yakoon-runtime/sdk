@@ -1,9 +1,9 @@
-"""Store factory (ADR-18, ADR-19): `sdk.store()` resolves the caller's stores.
+"""Store factory (ADR-18, ADR-19): `sdk.store.get()` binds a store client.
 
-Without a name: no declared store → default; one declared store → that
-store; several declared stores → error. With a name: the store must be
-declared — an undeclared dependency is an error. Ambiguity and undeclared
-access are surfaced at the API, never resolved implicitly.
+Without a name: one declared store → that store; several declared stores
+→ error; no declared store → an unbound client. With a name: the client
+binds directly — the runtime routes the name to the store the
+installation built for it.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from y5n.sdk import store
 def test_store_without_name_resolves_default_or_single(declared, expected):
     set_context({"node": {"path": "/crm/sync", "stores": declared}})
     try:
-        client = store()
+        client = store.get()
         assert client._name == expected
     finally:
         set_context({})
@@ -33,7 +33,7 @@ def test_store_without_name_raises_on_multiple():
     set_context({"node": {"path": "/crm/sync", "stores": ["crm", "telemetry"]}})
     try:
         with pytest.raises(ValueError, match="Multiple stores declared"):
-            store()
+            store.get()
     finally:
         set_context({})
 
@@ -41,16 +41,18 @@ def test_store_without_name_raises_on_multiple():
 def test_store_with_name_uses_it():
     set_context({"node": {"path": "/crm/sync", "stores": ["crm", "telemetry"]}})
     try:
-        client = store("telemetry")
+        client = store.get("telemetry")
         assert client._name == "telemetry"
     finally:
         set_context({})
 
 
-def test_store_with_undeclared_name_raises():
+def test_store_with_name_binds_directly():
+    """ADR-19: a named client binds directly — the runtime routes it,
+    regardless of the ambient caller's declared stores."""
     set_context({"node": {"path": "/crm/sync", "stores": ["crm"]}})
     try:
-        with pytest.raises(ValueError, match="Undeclared store 'telemetry'"):
-            store("telemetry")
+        client = store.get("telemetry")
+        assert client._name == "telemetry"
     finally:
         set_context({})

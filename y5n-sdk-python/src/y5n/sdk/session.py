@@ -65,8 +65,8 @@ class _SessionDetach:
 class _SessionCurrent:
     def __await__(self):
         from y5n.runtime.api.runtime.bus import get_bus
-        from y5n.runtime.api.runtime.invoke import Call
         from y5n.runtime.api.runtime.context import current_context
+        from y5n.runtime.api.runtime.invoke import Call
         from y5n.sdk.libs.models import Session as _SessionModel
 
         ctx = current_context()
@@ -83,7 +83,11 @@ class _SessionCurrent:
         ).__await__()
         data = resp.result if hasattr(resp, "result") else resp
         return _SessionModel.from_context(
-            {"key": data.get("key"), "lang": data.get("lang"), "data": data.get("data", {})},
+            {
+                "key": data.get("key"),
+                "lang": data.get("lang"),
+                "data": data.get("data", {}),
+            },
             {"id": data.get("user_id"), "name": data.get("user_name")},
         )
 
