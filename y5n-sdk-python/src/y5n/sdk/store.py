@@ -408,7 +408,7 @@ class StoreClient:
         terms,
         mode="and",
         limit=100,
-    ) -> list[Key]:
+    ) -> tuple[list[Key], str | None]:
         page = await _query_index(
             namespace=namespace.to_str(),
             terms=[
@@ -419,7 +419,7 @@ class StoreClient:
             limit=limit,
             store_name=self._name,
         )
-        return [_parse_key(k) for k in page["keys"]]
+        return [_parse_key(k) for k in page["keys"]], page.get("cursor")
 
     async def ensure_indexes(self, *, namespace: Namespace, specs) -> None:
         await _ensure_indexes(
