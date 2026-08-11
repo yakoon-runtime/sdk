@@ -17,7 +17,6 @@ from .io import io
 from .network import network
 from .resources import Resource
 from .scheduler import scheduler
-from .session import session
 from .store import store
 from .timer import timer
 from .viewport import viewport
@@ -32,7 +31,6 @@ __all__ = [
     "ports",
     "scheduler",
     "security",
-    "session",
     "store",
     "timer",
     "viewport",
