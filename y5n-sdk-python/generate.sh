@@ -16,11 +16,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SDK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-INPUT="${1:-$SDK_ROOT/spec/yds/yds-v1.yaml}"
-OUTPUT="${2:-$PROJECT_ROOT/sdk/y5n-sdk-python/src/y5n/sdk/models.py}"
+INPUT="${1:-$PROJECT_ROOT/spec/yds/yds-v1.yaml}"
+OUTPUT="${2:-$PROJECT_ROOT/y5n-sdk-python/src/y5n/sdk/models.py}"
 
 # Resolve relative to project root
 if [[ "$INPUT" != /* ]]; then

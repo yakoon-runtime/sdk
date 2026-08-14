@@ -18,7 +18,7 @@ from y5n.sdk import context, fs, io, models, ports, scheduler, session, viewport
 | `viewport` | `from y5n.sdk import viewport` | Client viewport commands (clear, connect) |
 | `session` | `from y5n.sdk import session` | Session management (list, attach, detach) |
 | `fs` | `from y5n.sdk import fs` | Filesystem operations (chdir) |
-| `models` | `from y5n.sdk.models import Document, ...` | Typed YDS document builder (generated from `sdk/spec/yds/yds-v1.yaml`) |
+| `models` | `from y5n.sdk.models import Document, ...` | Typed YDS document builder (generated from `spec/yds/yds-v1.yaml`) |
 | `ports` | `from y5n.sdk import ports` | Service / port access (provide + consume) |
 
 A backward-compatible `runtime` facade is available for code that prefers a single
