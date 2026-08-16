@@ -7,7 +7,7 @@
 #
 #  Defaults:
 #    input   = sdk/spec/yds/yds-v1.yaml
-#    output  = sdk/y5n-sdk-python/src/y5n/sdk/models.py
+#    output  = sdk/sdk-python/src/y5n/sdk/models.py
 #
 #  Uses the project venv python so the installed y5n-sdk-python generator is
 #  the one in this repo (not a stale system copy), then formats the output.
@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 INPUT="${1:-$PROJECT_ROOT/spec/yds/yds-v1.yaml}"
-OUTPUT="${2:-$PROJECT_ROOT/y5n-sdk-python/src/y5n/sdk/models.py}"
+OUTPUT="${2:-$PROJECT_ROOT/sdk-python/src/y5n/sdk/models.py}"
 
 # Resolve relative to project root
 if [[ "$INPUT" != /* ]]; then

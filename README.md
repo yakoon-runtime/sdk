@@ -128,7 +128,7 @@ path = context.session().cwd
 
 ## Models — Typed YDS Documents
 
-Generated from `spec/yds/yds-v1.yaml` via `sdk/y5n-sdk-python/generate.sh`.
+Generated from `spec/yds/yds-v1.yaml` via `sdk/sdk-python/generate.sh`.
 
 ```python
 from y5n.sdk.models import Document, Header, Paragraph, InlineText
@@ -182,11 +182,11 @@ and control that the runtime applies directly. No translation layer.
 ## Generator
 
 ```bash
-cd sdk/y5n-sdk-python
+cd sdk/sdk-python
 ./generate.sh
 ```
 
-This reads `sdk/spec/yds/yds-v1.yaml` and writes `sdk/y5n-sdk-python/src/y5n/sdk/models.py`.
+This reads `sdk/spec/yds/yds-v1.yaml` and writes `sdk/sdk-python/src/y5n/sdk/models.py`.
 The generator lives in `sdk/y5n-sdk-gen/` and supports multiple language targets.
 
 ## Rules
