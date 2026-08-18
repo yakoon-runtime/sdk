@@ -1,4 +1,2 @@
 components:
-  y5n-sdk-python:
-    location: sdk-python
-    release: y5n-sdk-python-v0.1.0
+  - location: sdk-python
