@@ -1,2 +1,3 @@
 components:
-  - location: sdk-python
+  y5n-sdk-python:
+    location: sdk-python
