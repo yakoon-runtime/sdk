@@ -1,5 +1,10 @@
 # SDK — Command Capabilities
 
+[![Version](https://img.shields.io/badge/Version-0.1.0-blue.svg)]()
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)]()
+[![Tests](https://github.com/yakoon-runtime/sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/yakoon-runtime/sdk/actions/workflows/tests.yml)
+
 The Python SDK is the first-class interface for writing Yakoon commands.
 
 ```python
