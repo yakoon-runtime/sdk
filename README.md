@@ -5,6 +5,8 @@
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)]()
 [![Tests](https://github.com/yakoon-runtime/sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/yakoon-runtime/sdk/actions/workflows/tests.yml)
 
+**Status: Active development**
+
 The Python SDK is the first-class interface for writing Yakoon commands.
 
 ```python
@@ -199,3 +201,8 @@ The generator lives in `sdk/y5n-sdk-gen/` and supports multiple language targets
 - The Host never imports SDK types — it receives plain `dict` / `str`.
 - The SDK never imports Host types — it yields `Marker` instances.
 - Models are generated, never hand-edited. Extensions go in companion modules.
+
+## Links
+
+- Developer setup: [yakoon-runtime/developer](https://github.com/yakoon-runtime/developer)
+- Runtime: [yakoon-runtime/runtime](https://github.com/yakoon-runtime/runtime)
