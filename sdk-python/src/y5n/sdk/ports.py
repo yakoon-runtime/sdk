@@ -14,11 +14,13 @@ Usage:
     print(await hello.greet(name="Yakoon"))
 """
 
-from typing import Any
+from typing import Any, TypeVar, overload
 
 from .context import current as _current_context
 from .libs import transport as _transport
 from .libs.models import Call, Register, Response
+
+T = TypeVar("T")
 
 
 def _extract_methods(service: object) -> dict[str, Any]:
@@ -136,5 +138,20 @@ def promote(name: str, service: object) -> None:
     )
 
 
-def get(name: str):
+@overload
+def get(name: str) -> Any: ...
+
+
+@overload
+def get(name: str, protocol: type[T]) -> T: ...
+
+
+def get(name: str, protocol: type[T] | None = None) -> Any:
+    """Return the Runtime Bus port proxy for ``name``.
+
+    ``protocol`` is Python SDK typing information only — it narrows the
+    static type of the result to the given contract. It is never
+    transmitted, registered, inspected or validated: the Runtime sees
+    only ``name``.
+    """
     return _PortProxy(name)
