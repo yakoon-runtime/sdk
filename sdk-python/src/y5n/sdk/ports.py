@@ -42,6 +42,11 @@ def _register(reg: Register, callables: dict[str, Any] | None = None) -> None:
     _transport.register(reg.to_dict(), callables)
 
 
+def _caller_path() -> str:
+    """Current node path from the invocation context ('' when unknown)."""
+    return _current_context().node.get("path", "")
+
+
 async def _do_call(call: Call):
     response = await _invoke(call)
     if response.error:
@@ -104,7 +109,12 @@ def provide(name: str, service: object) -> None:
     if not callables:
         callables = {"__call__": service}
     _register(
-        Register(name=name, methods=list(callables), placement="self"),
+        Register(
+            name=name,
+            methods=list(callables),
+            placement="self",
+            caller_path=_caller_path(),
+        ),
         callables,
     )
 
@@ -118,7 +128,12 @@ def publish(name: str, service: object) -> None:
     if not callables:
         callables = {"__call__": service}
     _register(
-        Register(name=name, methods=list(callables), placement="parent"),
+        Register(
+            name=name,
+            methods=list(callables),
+            placement="parent",
+            caller_path=_caller_path(),
+        ),
         callables,
     )
 
@@ -133,7 +148,12 @@ def promote(name: str, service: object) -> None:
     if not callables:
         callables = {"__call__": service}
     _register(
-        Register(name=name, methods=list(callables), placement="root"),
+        Register(
+            name=name,
+            methods=list(callables),
+            placement="root",
+            caller_path=_caller_path(),
+        ),
         callables,
     )
 
