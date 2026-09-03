@@ -116,6 +116,7 @@ class _Form:
                         key=f.get("key", ""),
                         title=f.get("title", ""),
                         required=f.get("required", False),
+                        secret=f.get("secret", False),
                     )
                 )
             else:

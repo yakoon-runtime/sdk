@@ -337,6 +337,7 @@ class Field(YdsModel):
     hint: str | None = None
     default: str | None = None
     lookup: str | None = None
+    secret: bool = False
 
 
 @dataclass(slots=True, kw_only=True)
