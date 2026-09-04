@@ -108,26 +108,39 @@ class _Form:
 
     def __await__(self):
         params = self._params
-        fields = []
-        for f in params.get("fields", []):
-            if isinstance(f, dict):
-                fields.append(
-                    Param(
-                        key=f.get("key", ""),
-                        title=f.get("title", ""),
-                        required=f.get("required", False),
-                        secret=f.get("secret", False),
+        elements = params.get("elements")
+        if elements is not None:
+            # Forward everything — Form owns the mode validation
+            # (elements + fields/title/intro are rejected there).
+            form = Form(
+                elements=elements,
+                fields=params.get("fields"),
+                title=params.get("title", ""),
+                intro=params.get("intro", ""),
+                initial=params.get("initial"),
+                focus=params.get("focus"),
+            )
+        else:
+            fields = []
+            for f in params.get("fields", []):
+                if isinstance(f, dict):
+                    fields.append(
+                        Param(
+                            key=f.get("key", ""),
+                            title=f.get("title", ""),
+                            required=f.get("required", False),
+                            secret=f.get("secret", False),
+                        )
                     )
-                )
-            else:
-                fields.append(f)
-        form = Form(
-            fields=fields,
-            title=params.get("title", ""),
-            intro=params.get("intro", ""),
-            initial=params.get("initial"),
-            focus=params.get("focus"),
-        )
+                else:
+                    fields.append(f)
+            form = Form(
+                fields=fields,
+                title=params.get("title", ""),
+                intro=params.get("intro", ""),
+                initial=params.get("initial"),
+                focus=params.get("focus"),
+            )
         result = yield from form.pulse_flow()
         return result
 
@@ -181,16 +194,20 @@ class _IO:
 
     def form(
         self,
-        fields: list[dict | _FormFieldDef],
+        fields: list[dict | _FormFieldDef] | None = None,
         *,
+        elements: list | None = None,
         title: str = "",
         intro: str = "",
         initial: dict[str, str] | None = None,
         focus: str | None = None,
     ) -> _Form:
-        raw = [f.to_dict() if isinstance(f, _FormFieldDef) else f for f in fields]
+        raw = None
+        if fields is not None:
+            raw = [f.to_dict() if isinstance(f, _FormFieldDef) else f for f in fields]
         return _Form(
             fields=raw,
+            elements=elements,
             title=title,
             intro=intro,
             initial=initial or {},
@@ -225,14 +242,22 @@ def send(channel: str, payload: Any = None, scope: str = "flow") -> _Send:
 
 
 def form(
-    fields: list[dict | _FormFieldDef],
+    fields: list[dict | _FormFieldDef] | None = None,
     *,
+    elements: list | None = None,
     title: str = "",
     intro: str = "",
     initial: dict[str, str] | None = None,
     focus: str | None = None,
 ) -> _Form:
-    return io.form(fields, title=title, intro=intro, initial=initial, focus=focus)
+    return io.form(
+        fields,
+        elements=elements,
+        title=title,
+        intro=intro,
+        initial=initial,
+        focus=focus,
+    )
 
 
 __all__ = ["error", "form", "io", "prompt", "receive", "send", "write"]
