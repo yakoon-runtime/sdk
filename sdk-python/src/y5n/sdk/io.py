@@ -14,7 +14,6 @@ from y5n.runtime.api.flow.primitives import (
     Pulse,
 )
 from y5n.runtime.api.runtime import Event
-from y5n.runtime.api.runtime.input import InputContext
 from y5n.runtime.api.runtime.invocation import Param
 from y5n.sdk.models import Document, Header, InlineText, Text, YdsModel
 from y5n.sdk.models import Field as _FormFieldDef
@@ -59,20 +58,10 @@ class _Error:
 
 
 class _Prompt:
-    """Show a projection and wait for the user's answer.
+    __slots__ = ("_projection",)
 
-    By default the prompt inherits the flow's current event context, so
-    the renderer displays the submitted input as an echo below the
-    projection. With ``echo=False`` the projection travels with its own
-    echo-free context instead — for interactive loops where the
-    submitted input is already part of the projected application state.
-    """
-
-    __slots__ = ("_projection", "_echo")
-
-    def __init__(self, projection: dict | str, echo: bool = True) -> None:
+    def __init__(self, projection: dict | str) -> None:
         self._projection = projection
-        self._echo = echo
 
     def __await__(self):
         view = (
@@ -80,9 +69,8 @@ class _Prompt:
             if isinstance(self._projection, dict)
             else _text_document(self._projection)
         )
-        ctx = None if self._echo else InputContext()
         result = yield Pulse(
-            effects=[Foreground(), EmitView(view, persist=True, ctx=ctx)],
+            effects=[Foreground(), EmitView(view, persist=True)],
             control=AwaitEvent("__user__", scope=Scope.USER_INPUT),
         )
         return result
@@ -191,13 +179,8 @@ class _IO:
     def error(self, text: str) -> _Error:
         return _Error(text)
 
-    def prompt(
-        self,
-        projection: dict | str,
-        *,
-        echo: bool = True,
-    ) -> _Prompt:
-        return _Prompt(projection, echo)
+    def prompt(self, projection: dict | str) -> _Prompt:
+        return _Prompt(projection)
 
     def receive(
         self,
@@ -243,12 +226,8 @@ def error(text: str) -> _Error:
     return io.error(text)
 
 
-def prompt(
-    projection: dict | str,
-    *,
-    echo: bool = True,
-) -> _Prompt:
-    return io.prompt(projection, echo=echo)
+def prompt(projection: dict | str) -> _Prompt:
+    return io.prompt(projection)
 
 
 def receive(
